@@ -66,6 +66,7 @@
 #include "gpio.h"
 #include "fmc.h"
 #include "wm8994.h"
+#include "audio_channel.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -75,15 +76,18 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-#define PLAY_BUFF_SIZE 1024
+#define PLAY_BUFF_SIZE 256
 #define AUDIO_FILE_ADDRESS   0x08010000
 
 AUDIO_DrvTypeDef *audio_drv;
 
 uint16_t SaiBuffer[PLAY_BUFF_SIZE];
+uint16_t SaiBufferSample = 0xff;
 
 volatile int UpdatePointer = -1;
 uint32_t playProgress;
+
+int current_step = 0;
 
 volatile uint8_t retVal;
 
@@ -111,7 +115,7 @@ void WM8894_Init(){
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if(0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 80, AUDIO_FREQUENCY_22K))
+  if(0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50, AUDIO_FREQUENCY_22K))
   {
     Error_Handler();
   }
@@ -135,27 +139,41 @@ void semiquaver(void *p)
 
   while(1)
   {
-    vTaskDelayUntil( &xLastWakeTime, (16*234) / portTICK_PERIOD_MS );
-    playProgress = 0;
+    vTaskDelayUntil( &xLastWakeTime, (117) / portTICK_PERIOD_MS );
+
+    for(int i = 0; i < 8; i++){ 
+        if(sequencer[i].note_on & (1 << current_step))
+            sequencer[i].sample_progress = (uint32_t)0x00;
+    }
+    
+    current_step = (current_step + 1) % 16;
     HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
   }
 }
 
 void audioBufferManager(void *p)
 {
-
-    playProgress = 0;
-
         while(1){
           if(UpdatePointer != -1){
             int pos = UpdatePointer;
             UpdatePointer = -1;
+            
+                for(int i = 0; i < PLAY_BUFF_SIZE/2; i++)
+                {
+                    SaiBufferSample = 0xff; 
+                    
+                    for(int i = 0; i < 8; i++)
+                    {
+                            if(sequencer[i].sample_progress < sequencer[i].sample_length)
+                            {
+                                SaiBufferSample +=  (*(uint16_t *) (AUDIO_FILE_ADDRESS + (uint32_t)sequencer[i].sample_start + (uint32_t)sequencer[i].sample_progress));
+                                sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
+                            }
+                    }
 
-            for(int i = 0; i < PLAY_BUFF_SIZE/2; i++)
-            {
-                SaiBuffer[pos + i] =  (*(uint16_t *) (AUDIO_FILE_ADDRESS + playProgress));
-                playProgress = playProgress + 2;
-            }
+                    SaiBuffer[pos + i] = SaiBufferSample;
+
+                }
 
             if(UpdatePointer != -1)
             {
@@ -163,7 +181,7 @@ void audioBufferManager(void *p)
             }
           }
 
-        vTaskDelay(2 / portTICK_PERIOD_MS);
+        vTaskDelay(1 / portTICK_PERIOD_MS);
 
         }
 }
@@ -251,6 +269,15 @@ int main(void)
   retVal = HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
   if(HAL_OK != retVal)
     Error_Handler();
+
+  sequencer_set_sample(0,  0x0100, 0x12000);
+  sequencer_set_pattern(0, 0b1000100010001000);
+
+  sequencer_set_sample(1, 0x16000, 0xF000);
+  sequencer_set_pattern(1, 0b0000100000001000);
+
+  sequencer_set_sample(2, 0x26000, 0xF000);
+  sequencer_set_pattern(1, 0b0000100000001000);
 
   // Create two tasks
   // xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
