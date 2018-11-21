@@ -67,6 +67,7 @@
 #include "fmc.h"
 #include "wm8994.h"
 #include "audio_channel.h"
+#include "keypad.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -79,10 +80,12 @@
 #define PLAY_BUFF_SIZE 256
 #define AUDIO_FILE_ADDRESS   0x08010000
 
+#define NUM_OF_CHANNELS 8
+
 AUDIO_DrvTypeDef *audio_drv;
 
-uint16_t SaiBuffer[PLAY_BUFF_SIZE];
-uint16_t SaiBufferSample = 0xff;
+int16_t SaiBuffer[PLAY_BUFF_SIZE];
+int16_t SaiBufferSample = 0x0;
 
 volatile int UpdatePointer = -1;
 uint32_t playProgress;
@@ -115,7 +118,7 @@ void WM8894_Init(){
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if(0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50, AUDIO_FREQUENCY_22K))
+  if(0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 60, AUDIO_FREQUENCY_22K))
   {
     Error_Handler();
   }
@@ -130,6 +133,18 @@ void blinky(void *p)
         }
 }
 
+void check_inputs(void *p)
+{
+        while(1)
+        {
+            uint8_t key_pressed = key_scan();
+            if(key_pressed != 0xFF)
+                sequencer_set_pattern(0, (sequencer[0].note_on ^= 1 << key_pressed));
+
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+        }
+}
+
 void semiquaver(void *p)
 {
   TickType_t xLastWakeTime;
@@ -141,7 +156,7 @@ void semiquaver(void *p)
   {
     vTaskDelayUntil( &xLastWakeTime, (117) / portTICK_PERIOD_MS );
 
-    for(int i = 0; i < 8; i++){ 
+    for(int i = 0; i < NUM_OF_CHANNELS; i++){ 
         if(sequencer[i].note_on & (1 << current_step))
             sequencer[i].sample_progress = (uint32_t)0x00;
     }
@@ -153,23 +168,28 @@ void semiquaver(void *p)
 
 void audioBufferManager(void *p)
 {
+        portTASK_USES_FLOATING_POINT();
+
         while(1){
+          // Generate samples
           if(UpdatePointer != -1){
             int pos = UpdatePointer;
             UpdatePointer = -1;
             
                 for(int i = 0; i < PLAY_BUFF_SIZE/2; i++)
                 {
-                    SaiBufferSample = 0xff; 
+                    SaiBufferSample = 0x00; 
                     
-                    for(int i = 0; i < 8; i++)
+                    for(int i = 0; i < NUM_OF_CHANNELS; i++)
                     {
                             if(sequencer[i].sample_progress < sequencer[i].sample_length)
                             {
-                                SaiBufferSample +=  (*(uint16_t *) (AUDIO_FILE_ADDRESS + (uint32_t)sequencer[i].sample_start + (uint32_t)sequencer[i].sample_progress));
+                                int16_t sample   = (*(uint16_t *) (AUDIO_FILE_ADDRESS + (uint32_t)sequencer[i].sample_start + (uint32_t)sequencer[i].sample_progress));
+                                SaiBufferSample += (int16_t) ((sample) * sequencer_get_adsr(i));
                                 sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
                             }
                     }
+
 
                     SaiBuffer[pos + i] = SaiBufferSample;
 
@@ -179,7 +199,12 @@ void audioBufferManager(void *p)
             {
                 Error_Handler();
             }
+          } else {
+            // Tasks if we're not updating samples
+            for(int j = 0; j < NUM_OF_CHANNELS; j++)
+                sequencer_calc_adsr(j);
           }
+
 
         vTaskDelay(1 / portTICK_PERIOD_MS);
 
@@ -270,20 +295,38 @@ int main(void)
   if(HAL_OK != retVal)
     Error_Handler();
 
-  sequencer_set_sample(0,  0x0100, 0x12000);
+  sequencer_set_sample(0,  0x1500, 0x10000);
   sequencer_set_pattern(0, 0b1000100010001000);
+  sequencer_set_adsr(0, 0, 0, .8, 1);
 
   sequencer_set_sample(1, 0x16000, 0xF000);
-  sequencer_set_pattern(1, 0b0000100000001000);
+  sequencer_set_pattern(1, 0b0000100000001010);
+  sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
 
   sequencer_set_sample(2, 0x26000, 0xF000);
-  sequencer_set_pattern(1, 0b0000100000001000);
+  sequencer_set_pattern(2, 0b0101010101010101);
+  sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
+  
+  sequencer_set_sample(3, 0x36000, 0xF000);
+  //sequencer_set_pattern(3, 0b0000001000000010);
+  
+  sequencer_set_sample(4, 0x50000, 0x1A000);
+  //sequencer_set_pattern(4, 0b1010101010101010);
+  
+  sequencer_set_sample(5,  0x6AD00, 0x2000);
+  //sequencer_set_pattern(5, 0xA0A0);
 
+  sequencer_set_sample(6, 0x7F000, 0xF000);
+  //sequencer_set_pattern(6, 0x8080);
+
+  sequencer_set_sample(7, 0x26000, 0xF000);
+  //sequencer_set_pattern(7, 0x00);
+  
   // Create two tasks
   // xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
-  xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 32, NULL);
-  xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 2, NULL);
-
+  xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
+  xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
+  xTaskCreate(check_inputs, (char*)"Check Inputs", 64, NULL, 4, NULL);
 
   /* Start scheduler */
   osKernelStart();
