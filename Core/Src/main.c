@@ -64,7 +64,6 @@
 #include "usb_otg.h"
 #include "wwdg.h"
 #include "gpio.h"
-#include "fmc.h"
 #include "wm8994.h"
 #include "audio_channel.h"
 #include "keypad.h"
@@ -139,7 +138,9 @@ void check_inputs(void *p)
         {
             uint8_t key_pressed = key_scan();
             if(key_pressed != 0xFF)
+            {
                 sequencer_set_pattern(0, (sequencer[0].note_on ^= 1 << key_pressed));
+            }
 
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
@@ -252,6 +253,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART1_UART_Init();
   /*
   MX_ADC1_Init();
   MX_ADC3_Init();
@@ -270,7 +272,6 @@ int main(void)
   MX_TIM11_Init();
   MX_TIM12_Init();
   MX_UART5_Init();
-  MX_USART1_UART_Init();
   MX_USART6_UART_Init();
   MX_USB_OTG_HS_PCD_Init();
   MX_WWDG_Init();
@@ -280,6 +281,7 @@ int main(void)
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
+
 
   /* USER CODE END 2 */
 
@@ -326,7 +328,7 @@ int main(void)
   // xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
-  xTaskCreate(check_inputs, (char*)"Check Inputs", 64, NULL, 4, NULL);
+  xTaskCreate(check_inputs, (char*)"Check Inputs", 64, NULL, 1, NULL);
 
   /* Start scheduler */
   osKernelStart();

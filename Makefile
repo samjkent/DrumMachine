@@ -40,7 +40,6 @@ Core/Src/main.c \
 Core/Src/gpio.c \
 Core/Src/keypad.c \
 Core/Src/adc.c \
-Core/Src/fmc.c \
 Core/Src/freertos.c \
 Core/Src/i2c.c \
 Core/Src/iwdg.c \
