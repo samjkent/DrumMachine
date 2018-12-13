@@ -38,6 +38,7 @@ BUILD_DIR = build
 C_SOURCES =  \
 Core/Src/main.c \
 Core/Src/gpio.c \
+Core/Src/dma.c \
 Core/Src/keypad.c \
 Core/Src/adc.c \
 Core/Src/freertos.c \

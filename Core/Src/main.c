@@ -51,6 +51,7 @@
 #include "stm32f7xx_hal.h"
 #include "cmsis_os.h"
 #include "adc.h"
+#include "dma.h"
 #include "i2c.h"
 #include "iwdg.h"
 #include "quadspi.h"
@@ -90,8 +91,88 @@ volatile int UpdatePointer = -1;
 uint32_t playProgress;
 
 int current_step = 0;
+int sequencer_channel = 0;
 
 volatile uint8_t retVal;
+
+uint16_t testData[464] = {
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2
+
+                        };
 
 TaskHandle_t xAudioBufferManager;
 
@@ -123,11 +204,26 @@ void WM8894_Init(){
   }
 }
 
+void set_pixel(uint8_t n, uint32_t grb, uint32_t mask)
+{
+    // n is wrong order.. TODO
+    
+    // Reverse bit order
+    for(int i = 0; i < 24; i++){
+        // Check mask for each bit
+        if(((mask >> (i)) & 0x01))  
+            testData[80 + (24 * (n+1)) - (1+i)] = ((grb >> i) & 0x01) ? 6 : 2;
+    }
+}
+
 void blinky(void *p)
 {
+        // General task thread
         while(1)
         {
             HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
+
+
             vTaskDelay(500 / portTICK_PERIOD_MS);
         }
 }
@@ -137,12 +233,38 @@ void check_inputs(void *p)
         while(1)
         {
             uint8_t key_pressed = key_scan();
+            char key_uart = (char)(key_pressed + 30);
+            
+            // If a key has been pressed
             if(key_pressed != 0xFF)
-            {
-                sequencer_set_pattern(0, (sequencer[0].note_on ^= 1 << key_pressed));
+            {  
+                // Check for modifier
+                if(HAL_GPIO_ReadPin(B_USER_GPIO_Port, B_USER_Pin) && key_pressed < 8)
+                {
+                    // Choose sample        
+                    // HAL_UART_Transmit(&huart1, &key_uart, sizeof(key_pressed), HAL_MAX_DELAY);
+                    sequencer_channel = key_pressed;
+                } else {                    
+                    // Set pattern
+                    sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
+                }
             }
+            
+            // Update sequencer LEDs
+            for(int i = 0; i < 16; i++){
+                // Clear red note data
+                set_pixel(i, 0x000000, 0x00FF00);
+
+                // Set if note on
+                if(sequencer[sequencer_channel].note_on & (1 << i))
+                    set_pixel(i, 0x00FF00, 0x00FF00);
+            }
+ 
+            keypad_clear_last_pressed();
 
             vTaskDelay(200 / portTICK_PERIOD_MS);
+
+
         }
 }
 
@@ -160,11 +282,21 @@ void semiquaver(void *p)
     for(int i = 0; i < NUM_OF_CHANNELS; i++){ 
         if(sequencer[i].note_on & (1 << current_step))
             sequencer[i].sample_progress = (uint32_t)0x00;
+    
     }
     
     current_step = (current_step + 1) % 16;
     HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
+
+    // Clear blue
+    for(int i = 0; i < 16; i++)
+        set_pixel(i, 0x000000, 0x0000FF);
+
+    // Set step
+    set_pixel(current_step, 0x0000FF, 0x0000FF);
+
   }
+            
 }
 
 void audioBufferManager(void *p)
@@ -203,7 +335,10 @@ void audioBufferManager(void *p)
           } else {
             // Tasks if we're not updating samples
             for(int j = 0; j < NUM_OF_CHANNELS; j++)
+            {
                 sequencer_calc_adsr(j);
+            }
+  
           }
 
 
@@ -222,6 +357,11 @@ void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai)
   UpdatePointer = 0;
 }
 
+void Delay(int counter)
+{
+    while(counter--);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -232,6 +372,10 @@ void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+  set_pixel(0, 0xFF00, 0xFF00);  
+  set_pixel(1, 0xFF00, 0xFF00);  
+  set_pixel(2, 0xFF00, 0xFF00);  
+  set_pixel(3, 0xFF00, 0xFF00);  
 
   /* USER CODE END 1 */
 
@@ -252,9 +396,21 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
+ 
+  MX_SAI2_Init();
+  HAL_SAI_MspInit(&SaiHandle);
+  WM8894_Init();
+  
   MX_GPIO_Init();
+
+  MX_DMA_Init();
+  MX_TIM4_Init();
   MX_USART1_UART_Init();
+  HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
+
+  
   /*
+  MX_TIM3_Init();
   MX_ADC1_Init();
   MX_ADC3_Init();
   MX_FMC_Init();
@@ -267,7 +423,6 @@ int main(void)
   MX_SDMMC2_MMC_Init();
   MX_SPDIFRX_Init();
   MX_SPI2_Init();
-  MX_TIM3_Init();
   MX_TIM10_Init();
   MX_TIM11_Init();
   MX_TIM12_Init();
@@ -277,10 +432,6 @@ int main(void)
   MX_WWDG_Init();
   */
   /* USER CODE BEGIN 2 */
-
-  MX_SAI2_Init();
-  HAL_SAI_MspInit(&SaiHandle);
-  WM8894_Init();
 
 
   /* USER CODE END 2 */
@@ -298,31 +449,23 @@ int main(void)
     Error_Handler();
 
   sequencer_set_sample(0,  0x1500, 0x10000);
-  sequencer_set_pattern(0, 0b1000100010001000);
   sequencer_set_adsr(0, 0, 0, .8, 1);
 
   sequencer_set_sample(1, 0x16000, 0xF000);
-  sequencer_set_pattern(1, 0b0000100000001010);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
 
   sequencer_set_sample(2, 0x26000, 0xF000);
-  sequencer_set_pattern(2, 0b0101010101010101);
   sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
   
   sequencer_set_sample(3, 0x36000, 0xF000);
-  //sequencer_set_pattern(3, 0b0000001000000010);
   
   sequencer_set_sample(4, 0x50000, 0x1A000);
-  //sequencer_set_pattern(4, 0b1010101010101010);
   
   sequencer_set_sample(5,  0x6AD00, 0x2000);
-  //sequencer_set_pattern(5, 0xA0A0);
 
   sequencer_set_sample(6, 0x7F000, 0xF000);
-  //sequencer_set_pattern(6, 0x8080);
 
   sequencer_set_sample(7, 0x26000, 0xF000);
-  //sequencer_set_pattern(7, 0x00);
   
   // Create two tasks
   // xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
