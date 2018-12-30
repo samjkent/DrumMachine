@@ -54,7 +54,9 @@ Core/Src/tim.c \
 Core/Src/usart.c \
 Core/Src/usb_otg.c \
 Core/Src/wwdg.c \
+Core/Src/S1D15G00.c \
 Sequencer/Src/audio_channel.c \
+Sequencer/Src/sample_manager.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
@@ -163,6 +165,8 @@ AS_INCLUDES =  \
 C_INCLUDES =  \
 -ICore/Inc \
 -ISequencer/Inc \
+-Ilibs/lib_delay/inc \
+-Ilibs/lib_PCF8833/inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \

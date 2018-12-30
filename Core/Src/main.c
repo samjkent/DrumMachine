@@ -68,6 +68,7 @@
 #include "wm8994.h"
 #include "audio_channel.h"
 #include "keypad.h"
+#include "S1D15G00.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -106,10 +107,6 @@ uint16_t testData[464] = {
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
-                            
-                            2,2,2,2,2,2,2,2,
-                            2,2,2,2,2,2,2,2,
-                            2,2,2,2,2,2,2,2,
 
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
@@ -130,7 +127,11 @@ uint16_t testData[464] = {
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
-                            
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
@@ -207,11 +208,11 @@ void WM8894_Init(){
 void set_pixel(uint8_t n, uint32_t grb, uint32_t mask)
 {
     // n is wrong order.. TODO
-    
+
     // Reverse bit order
     for(int i = 0; i < 24; i++){
         // Check mask for each bit
-        if(((mask >> (i)) & 0x01))  
+        if(((mask >> (i)) & 0x01))
             testData[80 + (24 * (n+1)) - (1+i)] = ((grb >> i) & 0x01) ? 6 : 2;
     }
 }
@@ -223,8 +224,9 @@ void blinky(void *p)
         {
             HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
 
+            keypad_clear_last_pressed();
 
-            vTaskDelay(500 / portTICK_PERIOD_MS);
+            vTaskDelay(200 / portTICK_PERIOD_MS);
         }
 }
 
@@ -233,23 +235,24 @@ void check_inputs(void *p)
         while(1)
         {
             uint8_t key_pressed = key_scan();
-            char key_uart = (char)(key_pressed + 30);
-            
+            char key_uart = (char)(key_pressed + 48);
+
+            // HAL_UART_Transmit(&huart1, &key_uart, sizeof(key_pressed), HAL_MAX_DELAY);
+
             // If a key has been pressed
             if(key_pressed != 0xFF)
-            {  
+            {
                 // Check for modifier
                 if(HAL_GPIO_ReadPin(B_USER_GPIO_Port, B_USER_Pin) && key_pressed < 8)
                 {
-                    // Choose sample        
-                    // HAL_UART_Transmit(&huart1, &key_uart, sizeof(key_pressed), HAL_MAX_DELAY);
+                    // Choose sample
                     sequencer_channel = key_pressed;
-                } else {                    
+                } else {
                     // Set pattern
                     sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
                 }
             }
-            
+
             // Update sequencer LEDs
             for(int i = 0; i < 16; i++){
                 // Clear red note data
@@ -257,13 +260,10 @@ void check_inputs(void *p)
 
                 // Set if note on
                 if(sequencer[sequencer_channel].note_on & (1 << i))
-                    set_pixel(i, 0x00FF00, 0x00FF00);
+                    set_pixel(i, 0x000F00, 0x00FF00);
             }
- 
-            keypad_clear_last_pressed();
 
-            vTaskDelay(200 / portTICK_PERIOD_MS);
-
+            vTaskDelay(20 / portTICK_PERIOD_MS);
 
         }
 }
@@ -279,12 +279,12 @@ void semiquaver(void *p)
   {
     vTaskDelayUntil( &xLastWakeTime, (117) / portTICK_PERIOD_MS );
 
-    for(int i = 0; i < NUM_OF_CHANNELS; i++){ 
+    for(int i = 0; i < NUM_OF_CHANNELS; i++){
         if(sequencer[i].note_on & (1 << current_step))
             sequencer[i].sample_progress = (uint32_t)0x00;
-    
+
     }
-    
+
     current_step = (current_step + 1) % 16;
     HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
 
@@ -293,10 +293,10 @@ void semiquaver(void *p)
         set_pixel(i, 0x000000, 0x0000FF);
 
     // Set step
-    set_pixel(current_step, 0x0000FF, 0x0000FF);
+    set_pixel(current_step, 0x00000F, 0x0000FF);
 
   }
-            
+
 }
 
 void audioBufferManager(void *p)
@@ -308,11 +308,11 @@ void audioBufferManager(void *p)
           if(UpdatePointer != -1){
             int pos = UpdatePointer;
             UpdatePointer = -1;
-            
+
                 for(int i = 0; i < PLAY_BUFF_SIZE/2; i++)
                 {
-                    SaiBufferSample = 0x00; 
-                    
+                    SaiBufferSample = 0x00;
+
                     for(int i = 0; i < NUM_OF_CHANNELS; i++)
                     {
                             if(sequencer[i].sample_progress < sequencer[i].sample_length)
@@ -338,7 +338,7 @@ void audioBufferManager(void *p)
             {
                 sequencer_calc_adsr(j);
             }
-  
+
           }
 
 
@@ -372,10 +372,6 @@ void Delay(int counter)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  set_pixel(0, 0xFF00, 0xFF00);  
-  set_pixel(1, 0xFF00, 0xFF00);  
-  set_pixel(2, 0xFF00, 0xFF00);  
-  set_pixel(3, 0xFF00, 0xFF00);  
 
   /* USER CODE END 1 */
 
@@ -396,11 +392,11 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
- 
+
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
-  
+
   MX_GPIO_Init();
 
   MX_DMA_Init();
@@ -408,33 +404,21 @@ int main(void)
   MX_USART1_UART_Init();
   HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
 
-  
+  // MX_SPI2_Init();
+
   /*
-  MX_TIM3_Init();
-  MX_ADC1_Init();
-  MX_ADC3_Init();
-  MX_FMC_Init();
-  MX_I2C1_Init();
-  MX_I2C4_Init();
-  MX_IWDG_Init();
-  MX_QUADSPI_Init();
-  MX_RTC_Init();
-  MX_SAI2_Init();
-  MX_SDMMC2_MMC_Init();
-  MX_SPDIFRX_Init();
-  MX_SPI2_Init();
-  MX_TIM10_Init();
-  MX_TIM11_Init();
-  MX_TIM12_Init();
-  MX_UART5_Init();
-  MX_USART6_UART_Init();
-  MX_USB_OTG_HS_PCD_Init();
-  MX_WWDG_Init();
+  lcd_init();
+  lcd_set_pixel(50,50,GREEN);
+  lcd_set_pixel(50,51,GREEN);
+  lcd_set_pixel(50,52,GREEN);
+  lcd_set_pixel(50,53,GREEN);
+  lcd_set_pixel(50,54,GREEN);
+  lcd_set_pixel(60,50,GREEN);
+  lcd_set_pixel(60,51,GREEN);
+  lcd_set_pixel(60,52,GREEN);
+  lcd_set_pixel(60,53,GREEN);
+  lcd_set_pixel(60,54,GREEN);
   */
-  /* USER CODE BEGIN 2 */
-
-
-  /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -448,7 +432,7 @@ int main(void)
   if(HAL_OK != retVal)
     Error_Handler();
 
-  sequencer_set_sample(0,  0x1500, 0x10000);
+  sequencer_set_sample(0,  0x2000, 0x10000);
   sequencer_set_adsr(0, 0, 0, .8, 1);
 
   sequencer_set_sample(1, 0x16000, 0xF000);
@@ -456,19 +440,24 @@ int main(void)
 
   sequencer_set_sample(2, 0x26000, 0xF000);
   sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
-  
-  sequencer_set_sample(3, 0x36000, 0xF000);
-  
-  sequencer_set_sample(4, 0x50000, 0x1A000);
-  
-  sequencer_set_sample(5,  0x6AD00, 0x2000);
 
-  sequencer_set_sample(6, 0x7F000, 0xF000);
+  sequencer_set_sample(3, 0x36000, 0xF000);
+  sequencer_set_adsr(3, 0, 0.2, 0.5, 1);
+
+  sequencer_set_sample(4, 0x50000, 0x1A000);
+  sequencer_set_adsr(4, 0, 0.2, 0.5, 1);
+
+  sequencer_set_sample(5,  0x6AD00, 0x2000);
+  sequencer_set_adsr(5, 0, 0.2, 0.5, 1);
+
+  sequencer_set_sample(6, 0x81000, 0xF000);
+  sequencer_set_adsr(6, 0, 0.2, 0.5, 1);
 
   sequencer_set_sample(7, 0x26000, 0xF000);
-  
+  sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
+
   // Create two tasks
-  // xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
+  xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
   xTaskCreate(check_inputs, (char*)"Check Inputs", 64, NULL, 1, NULL);
