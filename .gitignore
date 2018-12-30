@@ -1,1 +1,3 @@
-buiild/
+build/
+build/**
+.DS_Store
