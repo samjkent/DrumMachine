@@ -123,5 +123,12 @@ void DMA1_Stream7_IRQHandler(void)
   /* USER CODE END DMA1_Stream7_IRQn 1 */
 }
 
+/**
+* @brief This function handles interrupt for EXTI0
+*/
+void EXTI0_IRQHandler(void){
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

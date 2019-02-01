@@ -37,6 +37,7 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/main.c \
+Core/Src/printf-std-arg.c \
 Core/Src/gpio.c \
 Core/Src/dma.c \
 Core/Src/keypad.c \
@@ -57,6 +58,7 @@ Core/Src/wwdg.c \
 Core/Src/S1D15G00.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
+Drivers/LCD/nokia5110_LCD.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
@@ -164,6 +166,7 @@ AS_INCLUDES =  \
 # C includes
 C_INCLUDES =  \
 -ICore/Inc \
+-IDrivers/LCD \
 -ISequencer/Inc \
 -Ilibs/lib_delay/inc \
 -Ilibs/lib_PCF8833/inc \
@@ -203,7 +206,7 @@ LDSCRIPT = STM32F769NIHx_FLASH.ld
 # libraries
 LIBS = -lc -lm -lnosys
 LIBDIR =
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) -specs=nano.specs -u_printf_float -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin

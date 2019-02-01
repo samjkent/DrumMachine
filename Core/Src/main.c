@@ -68,7 +68,7 @@
 #include "wm8994.h"
 #include "audio_channel.h"
 #include "keypad.h"
-#include "S1D15G00.h"
+#include "nokia5110_lcd.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -84,6 +84,15 @@
 #define NUM_OF_CHANNELS 8
 
 AUDIO_DrvTypeDef *audio_drv;
+
+enum modes {
+  SEQUENCER,
+  SELECTOR,
+  LIVE
+};
+
+
+uint8_t mode = LIVE;
 
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t SaiBufferSample = 0x0;
@@ -190,6 +199,11 @@ void MX_FREERTOS_Init(void);
 
 /* USER CODE BEGIN 0 */
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  mode = (mode + 1) % 3;
+}
+
 void WM8894_Init(){
   /* Initialize audio driver */
   if(WM8994_ID != wm8994_drv.ReadID(AUDIO_I2C_ADDRESS))
@@ -224,8 +238,6 @@ void blinky(void *p)
         {
             HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
 
-            keypad_clear_last_pressed();
-
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
 }
@@ -236,32 +248,71 @@ void check_inputs(void *p)
         {
             uint8_t key_pressed = key_scan();
             char key_uart = (char)(key_pressed + 48);
-
             // HAL_UART_Transmit(&huart1, &key_uart, sizeof(key_pressed), HAL_MAX_DELAY);
 
             // If a key has been pressed
-            if(key_pressed != 0xFF)
+            switch(mode)
             {
-                // Check for modifier
-                if(HAL_GPIO_ReadPin(B_USER_GPIO_Port, B_USER_Pin) && key_pressed < 8)
-                {
-                    // Choose sample
-                    sequencer_channel = key_pressed;
-                } else {
-                    // Set pattern
-                    sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
+              case SELECTOR:
+              {
+                  // Select sample
+                  if(key_pressed < 8)
+                  {
+                      //  Choose sample
+                      sequencer_channel = key_pressed;
+                      
+                      // Update LCD
+                      LCD_drawLine(10, 30, 30, 10);
+                      LCD_drawLine(30, 10, 40, 20);
+                      LCD_drawLine(40, 20, 60, 20);
+                      LCD_drawLine(60, 20, 70, 30);
+                      LCD_refreshScr();
+                      
+                      // Title
+                      char sampleText[20];
+                      sprintf(&sampleText, "Sample %i", key_pressed); 
+                      LCD_print(sampleText, 0, 0);
+                     
+                      // ADSR 
+                      char sampleADSR[16];
+                      sprintf(&sampleADSR, "A %.2f", 3.0542); // D %.2f  S %.2f  R %.2f", sequencer[key_pressed].attack, sequencer[key_pressed].decay, sequencer[key_pressed].sustain, 22.44);
+                      LCD_print(sampleADSR, 0, 5);
+                      
+                      break;
+                  }
+
+                  // If key is < 8 do function on selected sample
+              }
+              break;
+
+              case SEQUENCER:
+              {
+                // Update sequencer
+                sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
+                // Update sequencer LEDs
+                for(int i = 0; i < 16; i++){
+                    // Clear red note data
+                    set_pixel(i, 0x000000, 0x00FF00);
+
+                    // Set if note on
+                    if(sequencer[sequencer_channel].note_on & (1 << i))
+                        set_pixel(i, 0x000F00, 0x00FF00);
                 }
+              break;
+              }
+
+              case LIVE:
+              {
+                for(int i = 0; i < 16; i++){
+                    // Clear red note data
+                    set_pixel(i, 0x000000, 0xFFFFFF);
+                }
+                sequencer[key_pressed].sample_progress = 0;
+                // Set selected note on
+                set_pixel(key_pressed, 0x0F0000, 0xFF0000);
+              }
             }
 
-            // Update sequencer LEDs
-            for(int i = 0; i < 16; i++){
-                // Clear red note data
-                set_pixel(i, 0x000000, 0x00FF00);
-
-                // Set if note on
-                if(sequencer[sequencer_channel].note_on & (1 << i))
-                    set_pixel(i, 0x000F00, 0x00FF00);
-            }
 
             vTaskDelay(20 / portTICK_PERIOD_MS);
 
@@ -288,12 +339,24 @@ void semiquaver(void *p)
     current_step = (current_step + 1) % 16;
     HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
 
-    // Clear blue
-    for(int i = 0; i < 16; i++)
-        set_pixel(i, 0x000000, 0x0000FF);
+    if(mode == SEQUENCER)
+    {
+      // Clear blue
+      for(int i = 0; i < 16; i++)
+          set_pixel(i, 0x000000, 0x0000FF);
 
-    // Set step
-    set_pixel(current_step, 0x00000F, 0x0000FF);
+      // Set step
+      set_pixel(current_step, 0x00000F, 0x0000FF);
+    } else if(mode == SELECTOR)
+    {
+      // Set LEDs
+      for(int i = 0; i < 16; i++){
+        // Clear LEDs
+        set_pixel(i, 0x000000, 0xFFFFFF);
+      }
+      // Set selected sample on
+      set_pixel(sequencer_channel, 0x0F0F00, 0xFFFF00);
+    }
 
   }
 
@@ -401,24 +464,22 @@ int main(void)
 
   MX_DMA_Init();
   MX_TIM4_Init();
-  MX_USART1_UART_Init();
+  // MX_USART1_UART_Init();
   HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
 
   // MX_SPI2_Init();
 
-  /*
-  lcd_init();
-  lcd_set_pixel(50,50,GREEN);
-  lcd_set_pixel(50,51,GREEN);
-  lcd_set_pixel(50,52,GREEN);
-  lcd_set_pixel(50,53,GREEN);
-  lcd_set_pixel(50,54,GREEN);
-  lcd_set_pixel(60,50,GREEN);
-  lcd_set_pixel(60,51,GREEN);
-  lcd_set_pixel(60,52,GREEN);
-  lcd_set_pixel(60,53,GREEN);
-  lcd_set_pixel(60,54,GREEN);
-  */
+  LCD_setCE(GPIOB, GPIO_PIN_14);
+  LCD_setRST(GPIOB, GPIO_PIN_15);
+  LCD_setDC(GPIOA, GPIO_PIN_11);
+  LCD_setDIN(GPIOH, GPIO_PIN_6);
+  LCD_setCLK(GPIOJ, GPIO_PIN_4);
+
+  LCD_init();
+
+  char test[20];
+  sprintf((char *)test, "Test: %.2f", 4.3f);
+  LCD_print(test, 0, 0);
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -438,29 +499,29 @@ int main(void)
   sequencer_set_sample(1, 0x16000, 0xF000);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(2, 0x26000, 0xF000);
+  sequencer_set_sample(2, 0x2A000, 0xF000);
   sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(3, 0x36000, 0xF000);
+  sequencer_set_sample(3, 0x3F000, 0xF000);
   sequencer_set_adsr(3, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(4, 0x50000, 0x1A000);
+  sequencer_set_sample(4, 0x58000, 0x10000);
   sequencer_set_adsr(4, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(5,  0x6AD00, 0x2000);
+  sequencer_set_sample(5,  0x6B000, 0x2000);
   sequencer_set_adsr(5, 0, 0.2, 0.5, 1);
 
   sequencer_set_sample(6, 0x81000, 0xF000);
   sequencer_set_adsr(6, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(7, 0x26000, 0xF000);
+  sequencer_set_sample(7, 0x28000, 0xF000);
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
 
   // Create two tasks
   xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
-  xTaskCreate(check_inputs, (char*)"Check Inputs", 64, NULL, 1, NULL);
+  xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 1, NULL);
 
   /* Start scheduler */
   osKernelStart();

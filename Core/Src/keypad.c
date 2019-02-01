@@ -18,15 +18,24 @@ uint8_t key_scan()
             if(HAL_GPIO_ReadPin(key_ports[4+j], key_pins[4+j]))
             {
                 uint8_t ij = ((i*4) + j);
-
-                if(last_pressed != ij){
-                    last_pressed = ij; // track for future
-                    pressed = ij;      // to send now
-                }
+                pressed = ij;      // to send now
             }
         }
     }
-
+   
+    // If nothings been pressed reset
+    if(pressed == 0xff){
+        last_pressed = 0xff;
+        return 0xff; 
+    }
+   
+    // If nothings changed do nothign but don't reset 
+    if(last_pressed == pressed){
+        return 0xff; // do nothing
+    }
+   
+    // If new press return 
+    last_pressed = pressed;
     return pressed;
 }
 
@@ -43,5 +52,5 @@ void keypad_set_row(size_t row)
 
 void keypad_clear_last_pressed()
 {
-    last_pressed = 0xff;
+//    last_pressed = 0xff;
 }

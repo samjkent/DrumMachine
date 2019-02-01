@@ -8,6 +8,6 @@ void load_sample_table(){
   sample_manager = malloc(number_of_samples * sizeof(sample_meta));
 
   // Load all samples into sample manager
-  memcpy(&sample_manager, SAMPLE_REGION_START + sizeof(uint32_t), number_of_samples * sizeof(sample_meta))
+  memcpy(&sample_manager, SAMPLE_REGION_START + sizeof(uint32_t), number_of_samples * sizeof(sample_meta));
 
 }

@@ -53,6 +53,8 @@ void OTG_HS_IRQHandler(void);
 
 void DMA2_Stream6_IRQHandler(void);
 
+void EXTI0_IRQHandler(void);
+
 #ifdef __cplusplus
 }
 #endif

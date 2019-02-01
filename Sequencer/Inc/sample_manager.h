@@ -1,7 +1,9 @@
+#include "main.h"
+
 #define SAMPLE_REGION_START 0x80000000
 
 struct sample_meta {
-  char[32] sample_name;
+  char sample_name[32];
   uint32_t sample_location;
   uint32_t sample_length;
   uint8_t  sample_type;
