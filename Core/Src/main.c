@@ -237,9 +237,37 @@ void blinky(void *p)
         while(1)
         {
             HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
-
+            
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
+}
+
+void ui_print_adsr(uint8_t channel)
+{
+    // Title
+    char sampleText[20];
+    sprintf(&sampleText, "Sample %i", channel); 
+    LCD_printSmall(sampleText, 0, 0);
+    
+    // ADSR - Attack
+    char sampleA[20];
+    sprintf(&sampleA, ">A %.2fms", sequencer[channel].attack);
+    LCD_printSmall(sampleA, 0, 2);
+    
+    // ADSR - Decay
+    char sampleD[20];
+    sprintf(&sampleD, " D %.2fms", sequencer[channel].decay);
+    LCD_printSmall(sampleD, 0, 3);
+    
+    // ADSR - Sustain
+    char sampleS[20];
+    sprintf(&sampleS, " S %.2fms", sequencer[channel].sustain);
+    LCD_printSmall(sampleS, 0, 4);
+    
+    // ADSR - Release
+    char sampleR[20];
+    sprintf(&sampleR, " R %.2fms", sequencer[channel].release);
+    LCD_printSmall(sampleR, 0, 5);
 }
 
 void check_inputs(void *p)
@@ -261,22 +289,7 @@ void check_inputs(void *p)
                       //  Choose sample
                       sequencer_channel = key_pressed;
                       
-                      // Update LCD
-                      LCD_drawLine(10, 30, 30, 10);
-                      LCD_drawLine(30, 10, 40, 20);
-                      LCD_drawLine(40, 20, 60, 20);
-                      LCD_drawLine(60, 20, 70, 30);
-                      LCD_refreshScr();
-                      
-                      // Title
-                      char sampleText[20];
-                      sprintf(&sampleText, "Sample %i", key_pressed); 
-                      LCD_print(sampleText, 0, 0);
-                     
-                      // ADSR 
-                      char sampleADSR[16];
-                      sprintf(&sampleADSR, "A %.2f", 3.0542); // D %.2f  S %.2f  R %.2f", sequencer[key_pressed].attack, sequencer[key_pressed].decay, sequencer[key_pressed].sustain, 22.44);
-                      LCD_print(sampleADSR, 0, 5);
+                      ui_print_adsr(sequencer_channel);
                       
                       break;
                   }
@@ -477,10 +490,6 @@ int main(void)
 
   LCD_init();
 
-  char test[20];
-  sprintf((char *)test, "Test: %.2f", 4.3f);
-  LCD_print(test, 0, 0);
-
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
@@ -516,6 +525,8 @@ int main(void)
 
   sequencer_set_sample(7, 0x28000, 0xF000);
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
+
+  ui_print_adsr(0);
 
   // Create two tasks
   xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);

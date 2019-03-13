@@ -119,9 +119,22 @@ void LCD_invertText(bool mode){
 void LCD_putChar(char c){
   for(int i = 0; i < 6; i++){
     if(lcd.inverttext != true)
-      LCD_write(ASCII[c - 0x20][i], LCD_DATA);
+      LCD_write((ASCII[c - 0x20][i]), LCD_DATA);
     else
       LCD_write(~(ASCII[c - 0x20][i]), LCD_DATA);
+  }
+}
+
+/*
+ * @brief Puts one small char on the current position of LCD's cursor
+ * @param c: char to be printed
+ */
+void LCD_putSmallChar(char c){
+  for(int i = 0; i < 5; i++){
+    if(lcd.inverttext != true)
+      LCD_write((SMALL_ASCII[c][i]), LCD_DATA);
+    else
+      LCD_write(~(SMALL_ASCII[c][i]), LCD_DATA);
   }
 }
 
@@ -134,6 +147,18 @@ void LCD_print(char *str, uint8_t x, uint8_t y){
   LCD_goXY(x, y);
   while(*str){
     LCD_putChar(*str++);
+  }
+}
+
+/*
+ * @brief Print a small string on the LCD
+ * @param x: starting point on the x-axis (column)
+ * @param y: starting point on the y-axis (line)
+ */
+void LCD_printSmall(char *str, uint8_t x, uint8_t y){
+  LCD_goXY(x, y);
+  while(*str){
+    LCD_putSmallChar(*str++);
   }
 }
 
@@ -344,3 +369,4 @@ void LCD_drawRectangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2){
   LCD_drawLine(x2, y1, x2, y2);
   LCD_drawLine(x1, y2, x2, y2);
 }
+
