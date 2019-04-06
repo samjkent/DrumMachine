@@ -57,7 +57,6 @@ Core/Src/wwdg.c \
 Core/Src/S1D15G00.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
-Drivers/LCD/nokia5110_LCD.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
@@ -67,7 +66,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_adc_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_cortex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_fmc.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sdram.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_i2c_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_iwdg.c \
@@ -76,8 +74,6 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rtc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rtc_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sai.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sai_ex.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c \
-Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_mmc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spdifrx.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \

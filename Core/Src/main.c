@@ -1,51 +1,3 @@
-
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
-  *
-  * Copyright (c) 2018 STMicroelectronics International N.V.
-  * All rights reserved.
-  *
-  * Redistribution and use in source and binary forms, with or without
-  * modification, are permitted, provided that the following conditions are met:
-  *
-  * 1. Redistribution of source code must retain the above copyright notice,
-  *    this list of conditions and the following disclaimer.
-  * 2. Redistributions in binary form must reproduce the above copyright notice,
-  *    this list of conditions and the following disclaimer in the documentation
-  *    and/or other materials provided with the distribution.
-  * 3. Neither the name of STMicroelectronics nor the names of other
-  *    contributors to this software may be used to endorse or promote products
-  *    derived from this software without specific written permission.
-  * 4. This software, including modifications and/or derivative works of this
-  *    software, must execute solely and exclusively on microcontroller or
-  *    microprocessor devices manufactured by or for STMicroelectronics.
-  * 5. Redistribution and use of this software other than as permitted under
-  *    this license is void and will automatically terminate your rights under
-  *    this license.
-  *
-  * THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
-  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-  * PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL PROPERTY
-  * RIGHTS ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY LAW. IN NO EVENT
-  * SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-  * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
-  * OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-  * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
-  */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f7xx_hal.h"
@@ -57,12 +9,10 @@
 #include "quadspi.h"
 #include "rtc.h"
 #include "sai.h"
-#include "sdmmc.h"
 #include "spdifrx.h"
 #include "spi.h"
 #include "tim.h"
 #include "usart.h"
-#include "usb_otg.h"
 #include "wwdg.h"
 #include "gpio.h"
 #include "wm8994.h"
@@ -81,8 +31,10 @@
 #define PLAY_BUFF_SIZE 256
 #define AUDIO_FILE_ADDRESS   0x08010000
 
-#define NUM_OF_CHANNELS 8
+#define ADC_BUFF_SIZE 30
 
+#define NUM_OF_CHANNELS 8
+   
 AUDIO_DrvTypeDef *audio_drv;
 
 enum modes {
@@ -97,6 +49,8 @@ uint8_t mode = LIVE;
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t SaiBufferSample = 0x0;
 
+uint32_t ADCBuffer[ADC_BUFF_SIZE];
+
 volatile int UpdatePointer = -1;
 uint32_t playProgress;
 
@@ -104,6 +58,8 @@ int current_step = 0;
 int sequencer_channel = 0;
 
 volatile uint8_t retVal;
+
+uint32_t globalVolume = 0;
 
 uint16_t testData[464] = {
                             0,0,0,0,0,0,0,0,
@@ -236,38 +192,18 @@ void blinky(void *p)
         // General task thread
         while(1)
         {
-            HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
+            // HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
+            
+            for(int i = 0; i < 3; i++) { 
+                char send = (ADCBuffer[i] >> 24) + 42;
+                HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
+            }
+                
+            char send = '\n';
+            HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
             
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
-}
-
-void ui_print_adsr(uint8_t channel)
-{
-    // Title
-    char sampleText[20];
-    sprintf(&sampleText, "Sample %i", channel); 
-    LCD_printSmall(sampleText, 0, 0);
-    
-    // ADSR - Attack
-    char sampleA[20];
-    sprintf(&sampleA, ">A %.2fms", sequencer[channel].attack);
-    LCD_printSmall(sampleA, 0, 2);
-    
-    // ADSR - Decay
-    char sampleD[20];
-    sprintf(&sampleD, " D %.2fms", sequencer[channel].decay);
-    LCD_printSmall(sampleD, 0, 3);
-    
-    // ADSR - Sustain
-    char sampleS[20];
-    sprintf(&sampleS, " S %.2fms", sequencer[channel].sustain);
-    LCD_printSmall(sampleS, 0, 4);
-    
-    // ADSR - Release
-    char sampleR[20];
-    sprintf(&sampleR, " R %.2fms", sequencer[channel].release);
-    LCD_printSmall(sampleR, 0, 5);
 }
 
 void check_inputs(void *p)
@@ -288,8 +224,6 @@ void check_inputs(void *p)
                   {
                       //  Choose sample
                       sequencer_channel = key_pressed;
-                      
-                      ui_print_adsr(sequencer_channel);
                       
                       break;
                   }
@@ -350,7 +284,7 @@ void semiquaver(void *p)
     }
 
     current_step = (current_step + 1) % 16;
-    HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
+    //HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
 
     if(mode == SEQUENCER)
     {
@@ -399,7 +333,6 @@ void audioBufferManager(void *p)
                             }
                     }
 
-
                     SaiBuffer[pos + i] = SaiBufferSample;
 
                 }
@@ -447,48 +380,27 @@ void Delay(int counter)
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration----------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_ADC1_Init();
+  // MX_ADC3_Init();
+  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer[0]), ADC_BUFF_SIZE) != HAL_OK) {
+          Error_Handler();
+  }
+  // HAL_ADC_Start(&hadc3);
+  
 
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
-
+  MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
 
-  MX_GPIO_Init();
 
-  MX_DMA_Init();
   MX_TIM4_Init();
-  // MX_USART1_UART_Init();
   HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
-
-  // MX_SPI2_Init();
-
-  LCD_setCE(GPIOB, GPIO_PIN_14);
-  LCD_setRST(GPIOB, GPIO_PIN_15);
-  LCD_setDC(GPIOA, GPIO_PIN_11);
-  LCD_setDIN(GPIOH, GPIO_PIN_6);
-  LCD_setCLK(GPIOJ, GPIO_PIN_4);
-
-  LCD_init();
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -504,6 +416,7 @@ int main(void)
 
   sequencer_set_sample(0,  0x2000, 0x10000);
   sequencer_set_adsr(0, 0, 0, .8, 1);
+  sequencer[0].note_on = 0xF0;
 
   sequencer_set_sample(1, 0x16000, 0xF000);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
@@ -525,8 +438,6 @@ int main(void)
 
   sequencer_set_sample(7, 0x28000, 0xF000);
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
-
-  ui_print_adsr(0);
 
   // Create two tasks
   xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
@@ -699,5 +610,16 @@ void assert_failed(uint8_t* file, uint32_t line)
 /**
   * @}
   */
+
+
+void ADC_DMAConvCplt(ADC_HandleTypeDef* AdcHandle)
+{
+    HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
+}
+
+void HAL_ADC_ErrorCallback(ADC_HandleTypeDef* AdcHandle)
+{
+        Error_Handler();
+}
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

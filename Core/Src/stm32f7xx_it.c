@@ -35,6 +35,7 @@
 #include "stm32f7xx.h"
 #include "stm32f7xx_it.h"
 #include "cmsis_os.h"
+#include "main.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -48,6 +49,9 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 extern TIM_HandleTypeDef htim1;
 
 extern SAI_HandleTypeDef SaiHandle;
+
+extern ADC_HandleTypeDef hadc1;
+extern DMA_HandleTypeDef hdma_adc1;
 
 /******************************************************************************/
 /*            Cortex-M7 Processor Interruption and Exception Handlers         */
@@ -128,6 +132,17 @@ void DMA1_Stream7_IRQHandler(void)
 */
 void EXTI0_IRQHandler(void){
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+
+void DMA2_Stream0_IRQHandler(void)
+{
+   HAL_DMA_IRQHandler(&hdma_adc1);
+}
+
+void ADC_IRQHandler(void)
+{
+    HAL_ADC_IRQHandler(&hadc1);
 }
 
 /* USER CODE END 1 */
