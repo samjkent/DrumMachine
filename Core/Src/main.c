@@ -18,7 +18,9 @@
 #include "wm8994.h"
 #include "audio_channel.h"
 #include "keypad.h"
-#include "nokia5110_lcd.h"
+#include "ili9341.h"
+#include "testimg.h"
+#include <math.h>
 
 /* USER CODE BEGIN Includes */
 
@@ -29,7 +31,9 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 #define PLAY_BUFF_SIZE 256
-#define AUDIO_FILE_ADDRESS   0x08010000
+#define AUDIO_FILE_ADDRESS   0x801002c
+// 44 bytes header
+#define SINE_ADDRESS   0x802002c
 
 #define ADC_BUFF_SIZE 30
 
@@ -142,18 +146,9 @@ uint16_t testData[464] = {
 
 TaskHandle_t xAudioBufferManager;
 
-/* USER CODE END PV */
-
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
-
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
-
-/* USER CODE END PFP */
-
-/* USER CODE BEGIN 0 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
@@ -370,34 +365,100 @@ void Delay(int counter)
 {
     while(counter--);
 }
+    
+void drawTicks(int fs, int div, int size, int windowSize, int x, int yPos) {
+    int next = ((x+1) * windowSize) % (fs / div);
+    int curr = ((x) * windowSize) % (fs / div);
+    if(next < curr) {
+        for(int16_t y = -size; y <= size; y++) 
+            ILI9341_DrawPixel(x, yPos + y ,ILI9341_BLUE);
+    }
+}
 
-/* USER CODE END 0 */
+void drawChannel(int channel, int yPos) {
+  // For x 0->240
+  int32_t memory;
+  int16_t sample;
+  int16_t max, min;
+  int16_t prevSample = 0;
+  int16_t windowSize = 201;
+  uint32_t lastAddress = 0;
+  // For x 0->240
+  for(int x = 0; x < 240; x++) {
+    max = 0; min = 0;
 
-/**
-  * @brief  The application entry point.
-  *
-  * @retval None
-  */
+    for(int n = 0; n < windowSize; n++) {
+
+        memory = *(int32_t *) (AUDIO_FILE_ADDRESS + (x * 4 * windowSize) + (4 * n)); // + (uint32_t)(x*windowSize) + (uint32_t)(32*n));
+        
+        if(channel == 0)
+            sample = (int16_t)(memory >> 16);
+        
+        if(channel == 1)
+            sample = (int16_t)(0xFFFF & memory);
+    
+        sample = sample / 640;
+        
+        if(sample > max) max = sample;
+        if(sample < min) min = sample;
+        
+    }
+    
+    // If the window size is large the waveform will not be accurate
+    // This provides a better overview of the window 
+    if(windowSize > 200) { 
+        for(int16_t y = min; y <= max; y++) 
+            ILI9341_DrawPixel(x, yPos + y ,ILI9341_YELLOW);
+    } else {
+    
+        // Draw wave    
+        if(prevSample < sample) {
+            for(int16_t y = prevSample; y <= sample; y++) 
+                ILI9341_DrawPixel(x, yPos + y ,ILI9341_GREEN);
+        } else {
+            for(int16_t y = prevSample; y >= sample; y--) 
+                ILI9341_DrawPixel(x, yPos + y ,ILI9341_GREEN);
+       }
+    }
+    
+    // Draw zero
+    ILI9341_DrawPixel(x, yPos ,ILI9341_BLUE);
+
+    // Draw .1 sec marker    
+    drawTicks(44100, 10, 2, windowSize, x, yPos);
+
+    // Draw 1 sec marker    
+    drawTicks(44100, 1, 5, windowSize, x, yPos);
+    
+   prevSample = sample;
+
+ }
+}
+
 int main(void)
 {
   HAL_Init();
   SystemClock_Config();
 
   MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_ADC1_Init();
-  // MX_ADC3_Init();
-  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer[0]), ADC_BUFF_SIZE) != HAL_OK) {
-          Error_Handler();
-  }
-  // HAL_ADC_Start(&hadc3);
+  MX_SPI2_Init();
+
+  ILI9341_Init();
+  ILI9341_FillScreen(ILI9341_BLACK);
+  // ILI9341_DrawImage((ILI9341_WIDTH - 240) / 2, (ILI9341_HEIGHT - 240) / 2, 240, 240, (const uint16_t*)test_img_240x240);
+ 
+  MX_USART1_UART_Init();
+  drawChannel(0, 80);
+  drawChannel(1, 240);
   
+  MX_DMA_Init();
+  MX_TIM4_Init();
+  HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
 
   MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
-
 
   MX_TIM4_Init();
   HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
@@ -443,31 +504,17 @@ int main(void)
   xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
-  xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 1, NULL);
+  // xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 1, NULL);
 
   /* Start scheduler */
   osKernelStart();
 
-  /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-
-  /* USER CODE END WHILE */
-
-  /* USER CODE BEGIN 3 */
-
-  }
-  /* USER CODE END 3 */
+  while (1) { }
 
 }
 
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
 void SystemClock_Config(void)
 {
 
@@ -603,23 +650,3 @@ void assert_failed(uint8_t* file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
-
-
-void ADC_DMAConvCplt(ADC_HandleTypeDef* AdcHandle)
-{
-    HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_13);
-}
-
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef* AdcHandle)
-{
-        Error_Handler();
-}
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

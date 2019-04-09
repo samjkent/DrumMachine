@@ -57,6 +57,8 @@ Core/Src/wwdg.c \
 Core/Src/S1D15G00.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
+Drivers/ILI9341/ili9341.c \
+Drivers/ILI9341/fonts.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
@@ -165,12 +167,14 @@ C_INCLUDES =  \
 -ISequencer/Inc \
 -Ilibs/lib_delay/inc \
 -Ilibs/lib_PCF8833/inc \
+-IDrivers/ILI9341 \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
 -IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
+-IMiddlewares/Third_Party/UGUI \
 -IDrivers/CMSIS/Include \
 -IDrivers/BSP/Components/wm8994 \
 -IDrivers/BSP/Components/Common \
