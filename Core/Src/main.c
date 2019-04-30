@@ -452,16 +452,14 @@ int main(void)
   drawChannel(1, 240);
   
   MX_DMA_Init();
-  MX_TIM4_Init();
-  HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
+
+  MX_TIM8_Init();
+  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 464);
 
   MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
-
-  MX_TIM4_Init();
-  HAL_TIM_PWM_Start_DMA (&htim4, TIM_CHANNEL_3, (uint32_t *)(&testData[0]), 464);
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
