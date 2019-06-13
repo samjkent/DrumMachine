@@ -54,7 +54,7 @@ Core/Src/tim.c \
 Core/Src/usart.c \
 Core/Src/usb_otg.c \
 Core/Src/wwdg.c \
-Core/Src/S1D15G00.c \
+Core/Src/MCP23017.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
 Drivers/ILI9341/ili9341.c \

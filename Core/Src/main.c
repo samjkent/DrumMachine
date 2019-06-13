@@ -19,6 +19,7 @@
 #include "audio_channel.h"
 #include "keypad.h"
 #include "ili9341.h"
+#include "MCP23017.h"
 #include "testimg.h"
 #include <math.h>
 
@@ -65,7 +66,7 @@ volatile uint8_t retVal;
 
 uint32_t globalVolume = 0;
 
-uint16_t testData[464] = {
+uint16_t testData[536] = {
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
@@ -105,6 +106,41 @@ uint16_t testData[464] = {
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
+                            2,2,2,2,2,2,2,2,
 
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
@@ -188,14 +224,19 @@ void blinky(void *p)
         while(1)
         {
             // HAL_GPIO_TogglePin(GPIOJ, GPIO_PIN_5);
-            
-            for(int i = 0; i < 3; i++) { 
-                char send = (ADCBuffer[i] >> 24) + 42;
-                HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
-            }
+           
+            // for(int i = 0; i < 3; i++) { 
+            //     char send = (ADCBuffer[i] >> 24) + 42;
+            //     // HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
+            // }
                 
-            char send = '\n';
-            HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
+            // char send = '\n';
+            // HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
+  
+            for(uint8_t h; h < 25; h++)
+                set_pixel(h, 0x000088, 0xFFFFFF);
+
+
             
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
@@ -444,19 +485,28 @@ int main(void)
   MX_SPI2_Init();
 
   ILI9341_Init();
-  ILI9341_FillScreen(ILI9341_BLACK);
-  // ILI9341_DrawImage((ILI9341_WIDTH - 240) / 2, (ILI9341_HEIGHT - 240) / 2, 240, 240, (const uint16_t*)test_img_240x240);
+  //ILI9341_FillScreen(ILI9341_BLACK);
+  ILI9341_DrawImage((ILI9341_WIDTH - 240) / 2, (ILI9341_HEIGHT - 240) / 2, 240, 240, (const uint16_t*)test_img_240x240);
  
-  MX_USART1_UART_Init();
-  drawChannel(0, 80);
-  drawChannel(1, 240);
+  // MX_USART1_UART_Init();
+  //drawChannel(0, 80);
+  //drawChannel(1, 240);
+
+  MX_I2C1_Init();
+
+  MCP23017_HandleTypeDef hmcp;
+
+  mcp23017_init(&hmcp, &hi2c1, MCP23017_ADDRESS_20);
+  mcp23017_iodir(&hmcp, MCP23017_PORTA, MCP23017_IODIR_ALL_INPUT);
+  mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_IO0_INPUT | MCP23017_IODIR_IO1_INPUT | MCP23017_IODIR_IO2_INPUT | MCP23017_IODIR_IO3_INPUT);
+
   
   MX_DMA_Init();
 
   MX_TIM8_Init();
-  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 464);
+  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 536); 
 
-  MX_USART1_UART_Init();
+  // MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
