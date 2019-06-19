@@ -66,7 +66,7 @@ volatile uint8_t retVal;
 
 uint32_t globalVolume = 0;
 
-uint16_t testData[536] = {
+uint16_t testData[680] = {
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
@@ -214,7 +214,7 @@ void set_pixel(uint8_t n, uint32_t grb, uint32_t mask)
     for(int i = 0; i < 24; i++){
         // Check mask for each bit
         if(((mask >> (i)) & 0x01))
-            testData[80 + (24 * (n+1)) - (1+i)] = ((grb >> i) & 0x01) ? 6 : 2;
+            testData[80 + (24 * (n+1)) - (1+i)] = ((grb >> i) & 0x01) ? 9 : 2;
     }
 }
 
@@ -233,9 +233,6 @@ void blinky(void *p)
             // char send = '\n';
             // HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
   
-            for(uint8_t h; h < 25; h++)
-                set_pixel(h, 0x000088, 0xFFFFFF);
-
 
             
             vTaskDelay(200 / portTICK_PERIOD_MS);
@@ -485,7 +482,7 @@ int main(void)
   MX_SPI2_Init();
 
   ILI9341_Init();
-  //ILI9341_FillScreen(ILI9341_BLACK);
+  ILI9341_FillScreen(ILI9341_BLACK);
   ILI9341_DrawImage((ILI9341_WIDTH - 240) / 2, (ILI9341_HEIGHT - 240) / 2, 240, 240, (const uint16_t*)test_img_240x240);
  
   // MX_USART1_UART_Init();
@@ -503,13 +500,17 @@ int main(void)
   
   MX_DMA_Init();
 
-  MX_TIM8_Init();
-  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 536); 
-
   // MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
+
+  MX_TIM8_Init();
+  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 680); 
+            
+  for(uint8_t h = 0; h < 25; h++)
+                set_pixel(h, 0x00000F + h*0xF, 0xFFFFFF);
+
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -549,7 +550,7 @@ int main(void)
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
 
   // Create two tasks
-  xTaskCreate(blinky, (char*)"blinky", 64, NULL, 1, NULL);
+  xTaskCreate(blinky, (char*)"blinky", 256, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
   // xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 1, NULL);
