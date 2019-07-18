@@ -272,9 +272,9 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
     PC7     ------> TIM8_CH3 
     */
     GPIO_InitStruct.Pin = GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Alternate = GPIO_AF3_TIM8;
     HAL_GPIO_Init(ARD_D5_PWM_GPIO_Port, &GPIO_InitStruct);
 

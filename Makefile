@@ -162,6 +162,7 @@ AS_INCLUDES =  \
 
 # C includes
 C_INCLUDES =  \
+-I. \
 -ICore/Inc \
 -IDrivers/LCD \
 -ISequencer/Inc \
@@ -174,7 +175,6 @@ C_INCLUDES =  \
 -IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
--IMiddlewares/Third_Party/UGUI \
 -IDrivers/CMSIS/Include \
 -IDrivers/BSP/Components/wm8994 \
 -IDrivers/BSP/Components/Common \

@@ -230,6 +230,18 @@ void ILI9341_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16
     }
 }
 
+void ILI9341_DrawHLine(uint16_t x, uint16_t y0, uint16_t y1, uint16_t color) {
+    for(int y = y0; y < y1; y++) {
+        ILI9341_DrawPixel(x,y,color);
+    }
+}
+
+void ILI9341_DrawVLine(uint16_t y, uint16_t x0, uint16_t x1, uint16_t color) {
+    for(int x = x0; x < x1; x++) {
+        ILI9341_DrawPixel(x,y,color);
+    }
+}
+
 static void ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) {
     uint32_t i, b, j;
 

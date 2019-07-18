@@ -20,8 +20,8 @@
 #include "keypad.h"
 #include "ili9341.h"
 #include "MCP23017.h"
-#include "testimg.h"
 #include <math.h>
+#include "defines.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -49,7 +49,7 @@ enum modes {
 };
 
 
-uint8_t mode = LIVE;
+uint8_t mode = SEQUENCER;
 
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t SaiBufferSample = 0x0;
@@ -65,8 +65,23 @@ int sequencer_channel = 0;
 volatile uint8_t retVal;
 
 uint32_t globalVolume = 0;
+  
+MCP23017_HandleTypeDef hmcp;
 
-uint16_t testData[680] = {
+// LED mapping required on 0.2 control board
+uint8_t ledMapping[25] = { 2,9,16,0, 6,13,20,4, 10,17,1,8, 14,21,5,12, 3,7,10,11,12,13,13,15,2};
+
+uint16_t testData[760] = {
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
+                            0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
@@ -208,13 +223,13 @@ void WM8894_Init(){
 
 void set_pixel(uint8_t n, uint32_t grb, uint32_t mask)
 {
-    // n is wrong order.. TODO
+    uint8_t m = ledMapping[n];
 
     // Reverse bit order
     for(int i = 0; i < 24; i++){
         // Check mask for each bit
         if(((mask >> (i)) & 0x01))
-            testData[80 + (24 * (n+1)) - (1+i)] = ((grb >> i) & 0x01) ? 9 : 2;
+            testData[160 + (24 * (m+1)) - (i+1)] = ((grb >> i) & 0x01) ? 6 : 2;
     }
 }
 
@@ -232,20 +247,70 @@ void blinky(void *p)
                 
             // char send = '\n';
             // HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
-  
-
             
             vTaskDelay(200 / portTICK_PERIOD_MS);
         }
 }
 
+void update_step(uint8_t key_pressed)
+{ 
+   /*
+   // Update sequencer
+   sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
+
+   // Update sequencer LEDs
+   if(sequencer[sequencer_channel].note_on & (1 << key_pressed)) {
+    set_pixel(key_pressed, 0x000F00, 0x00FF00);
+   } else {
+    set_pixel(key_pressed, 0x000000, 0x00FF00);
+   }
+   */
+    
+   set_pixel(key_pressed, 0x00FF00, 0x00FF00);
+}
+
 void check_inputs(void *p)
 {
+        uint8_t last_pressed = 0xFF;
+
+        uint8_t column = 0;
+        // Set column
+        hmcp.gpio[1] = 0x01 << 0;
+        mcp23017_write_gpio(&hmcp, MCP23017_PORTB);
+
         while(1)
         {
+                // Read rows
+                mcp23017_read_gpio(&hmcp, MCP23017_PORTA);
+                mcp23017_read_gpio(&hmcp, MCP23017_PORTB);
+
+                // Row 1
+                if(hmcp.gpio[1] & (1 << 5) && last_pressed != 0x03) {
+                    update_step(column*5 + 0);
+                } else if(hmcp.gpio[1] & (1 << 6) && last_pressed != 0x07) {
+                    update_step(column*5 + 1);
+                } else if(hmcp.gpio[1] & (1 << 7) && last_pressed != 0x0A) {
+                    update_step(column*5 + 2);
+                } else if(hmcp.gpio[0] & (1 << 0) && last_pressed != 0x0E) {
+                    update_step(column*5 + 3);
+                } else if(hmcp.gpio[0] & (1 << 1) && last_pressed != 0x02) {
+                    update_step(column*5 + 4);
+                }
+
+                if(column == 4) {
+                    column = 0;
+                } else {
+                    column++;
+                }
+                
+                // Set column
+                hmcp.gpio[1] = 0x01 << column;
+                mcp23017_write_gpio(&hmcp, MCP23017_PORTB);
+                
+            /*    
             uint8_t key_pressed = key_scan();
-            char key_uart = (char)(key_pressed + 48);
-            // HAL_UART_Transmit(&huart1, &key_uart, sizeof(key_pressed), HAL_MAX_DELAY);
+            char key_uart[10];
+            sprintf(key_uart, "Pressed: %d", key_pressed);
 
             // If a key has been pressed
             switch(mode)
@@ -292,7 +357,8 @@ void check_inputs(void *p)
                 set_pixel(key_pressed, 0x0F0000, 0xFF0000);
               }
             }
-
+            
+            */
 
             vTaskDelay(20 / portTICK_PERIOD_MS);
 
@@ -323,7 +389,7 @@ void semiquaver(void *p)
     {
       // Clear blue
       for(int i = 0; i < 16; i++)
-          set_pixel(i, 0x000000, 0x0000FF);
+           set_pixel(i, 0x000000, 0x0000FF);
 
       // Set step
       set_pixel(current_step, 0x00000F, 0x0000FF);
@@ -419,10 +485,10 @@ void drawChannel(int channel, int yPos) {
   int16_t sample;
   int16_t max, min;
   int16_t prevSample = 0;
-  int16_t windowSize = 201;
+  int16_t windowSize = 100;
   uint32_t lastAddress = 0;
   // For x 0->240
-  for(int x = 0; x < 240; x++) {
+  for(int x = 0; x < 300; x++) {
     max = 0; min = 0;
 
     for(int n = 0; n < windowSize; n++) {
@@ -446,21 +512,21 @@ void drawChannel(int channel, int yPos) {
     // This provides a better overview of the window 
     if(windowSize > 200) { 
         for(int16_t y = min; y <= max; y++) 
-            ILI9341_DrawPixel(x, yPos + y ,ILI9341_YELLOW);
+            ILI9341_DrawPixel(x+10, yPos + y ,ILI9341_YELLOW);
     } else {
     
         // Draw wave    
         if(prevSample < sample) {
             for(int16_t y = prevSample; y <= sample; y++) 
-                ILI9341_DrawPixel(x, yPos + y ,ILI9341_GREEN);
+                ILI9341_DrawPixel(x+10, yPos + y ,ILI9341_GREEN);
         } else {
             for(int16_t y = prevSample; y >= sample; y--) 
-                ILI9341_DrawPixel(x, yPos + y ,ILI9341_GREEN);
+                ILI9341_DrawPixel(x+10, yPos + y ,ILI9341_GREEN);
        }
     }
     
     // Draw zero
-    ILI9341_DrawPixel(x, yPos ,ILI9341_BLUE);
+    ILI9341_DrawPixel(x+10, yPos ,ILI9341_BLUE);
 
     // Draw .1 sec marker    
     drawTicks(44100, 10, 2, windowSize, x, yPos);
@@ -481,23 +547,48 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI2_Init();
 
-  ILI9341_Init();
-  ILI9341_FillScreen(ILI9341_BLACK);
-  ILI9341_DrawImage((ILI9341_WIDTH - 240) / 2, (ILI9341_HEIGHT - 240) / 2, 240, 240, (const uint16_t*)test_img_240x240);
- 
-  // MX_USART1_UART_Init();
-  //drawChannel(0, 80);
-  //drawChannel(1, 240);
-
   MX_I2C1_Init();
 
-  MCP23017_HandleTypeDef hmcp;
+  // MCP Reset
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_7, GPIO_PIN_RESET);
+
+  ILI9341_Init();
+  ILI9341_FillScreen(ILI9341_BLACK);
+  ILI9341_WriteString(5, 5, (char *)"808_kick.wav", Font_11x18 , ILI9341_WHITE, ILI9341_BLACK);
+  drawChannel(0, 80);
+ 
+  ILI9341_WriteString(5, 140, (char *)"Sample", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(5, 150, (char *)"ADSR", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(5, 165, (char *)"Filter", Font_11x18 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  
+  ILI9341_DrawHLine(80,140,230, ILI9341_WHITE);
+
+  // Fake filter env
+  for(int x = 0; x < 20; x++) {
+    ILI9341_DrawPixel(100 + x, 180.0 - (2*x), ILI9341_WHITE);
+  }
+  for(int x = 0; x < 40; x++) {
+    ILI9341_DrawPixel(120 + x, 140, ILI9341_WHITE);
+  }
+  
+  ILI9341_WriteString(170, 140, (char *)"Cut Off: 20 Hz", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(170, 150, (char *)"Resonance: 0%", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(170, 160, (char *)"LFO Amount: 20%", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(170, 170, (char *)"LFO Freq: 1/6", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  ILI9341_WriteString(170, 180, (char *)"Type: High Pass", Font_7x10 , ILI9341_WHITE, ILI9341_BLACK);
+  
+  // MX_USART1_UART_Init();
+  //drawChannel(1, 240);
+
+  
+  HAL_GPIO_WritePin(GPIOF, GPIO_PIN_7, GPIO_PIN_SET);
 
   mcp23017_init(&hmcp, &hi2c1, MCP23017_ADDRESS_20);
   mcp23017_iodir(&hmcp, MCP23017_PORTA, MCP23017_IODIR_ALL_INPUT);
-  mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_IO0_INPUT | MCP23017_IODIR_IO1_INPUT | MCP23017_IODIR_IO2_INPUT | MCP23017_IODIR_IO3_INPUT);
+  mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_ALL_OUTPUT | MCP23017_IODIR_IO5_INPUT | MCP23017_IODIR_IO6_INPUT | MCP23017_IODIR_IO7_INPUT);
 
-  
   MX_DMA_Init();
 
   // MX_USART1_UART_Init();
@@ -506,11 +597,8 @@ int main(void)
   WM8894_Init();
 
   MX_TIM8_Init();
-  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 680); 
-            
-  for(uint8_t h = 0; h < 25; h++)
-                set_pixel(h, 0x00000F + h*0xF, 0xFFFFFF);
-
+  HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 760); 
+  
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -553,7 +641,7 @@ int main(void)
   xTaskCreate(blinky, (char*)"blinky", 256, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
-  // xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 1, NULL);
+  xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 16, NULL);
 
   /* Start scheduler */
   osKernelStart();
