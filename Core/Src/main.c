@@ -269,6 +269,77 @@ void update_step(uint8_t key_pressed)
    set_pixel(key_pressed, 0x00FF00, 0x00FF00);
 }
 
+void matrix(void *p) {
+    // Set column high
+        // Check each row
+            // If high check last state
+                // If last state = 0
+                    // Set last state = 1
+                    // Execute command
+
+    uint8_t last_state[25];
+
+    while(1)
+    {
+        for(uint8_t col = 0; col <=4; col++) {
+            hmcp.gpio[1] = 0x01 << col;
+            mcp23017_write_gpio(&hmcp, MCP23017_PORTB);
+
+            vTaskDelay(2 / portTICK_PERIOD_MS);
+                    
+            // Read rows
+            mcp23017_read_gpio(&hmcp, MCP23017_PORTA);
+            mcp23017_read_gpio(&hmcp, MCP23017_PORTB);
+
+            // Update last state
+            if (hmcp.gpio[1] & (1 << 5)) {
+                    last_state[0 + (5 * col)] = (last_state[0 + (5 * col)] << 1) | 0x01;
+            } else {
+                    last_state[0 + (5 * col)] = (last_state[0 + (5 * col)] << 1);
+            }
+            if (hmcp.gpio[1] & (1 << 6)) {
+                    last_state[1 + (5 * col)] = 0x01;
+            } else {
+                    last_state[1 + (5 * col)] = 0x00;
+            }
+            if (hmcp.gpio[1] & (1 << 7)) {
+                    last_state[2 + (5 * col)] = 0x01;
+            } else {
+                    last_state[2 + (5 * col)] = 0x00;
+            }
+            if (hmcp.gpio[0] & (1 << 0)) {
+                    last_state[3 + (5 * col)] = 0x01;
+            } else {
+                    last_state[3 + (5 * col)] = 0x00;
+            }
+            if (hmcp.gpio[0] & (1 << 1)) {
+                    last_state[4 + (5 * col)] = 0x01;
+            } else {
+                    last_state[4 + (5 * col)] = 0x00;
+            }
+        }
+
+        // Use last state to update LEDs
+        for(uint8_t n = 0; n < 5; n++) {
+            if(last_state[n] == 0x01) {
+                    set_pixel(n, 0x000F00, 0x00FF00);
+            } else {
+                    set_pixel(n, 0x000000, 0x00FF00);
+            }
+                    
+        }
+        
+        mcp23017_iodir(&hmcp, MCP23017_PORTA, MCP23017_IODIR_ALL_OUTPUT);
+        mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_ALL_OUTPUT);
+  
+        mcp23017_iodir(&hmcp, MCP23017_PORTA, MCP23017_IODIR_ALL_INPUT);
+        mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_ALL_OUTPUT | MCP23017_IODIR_IO5_INPUT | MCP23017_IODIR_IO6_INPUT | MCP23017_IODIR_IO7_INPUT);
+
+        vTaskDelay(2 / portTICK_PERIOD_MS);
+    }
+
+}
+
 void check_inputs(void *p)
 {
         uint8_t last_pressed = 0xFF;
@@ -602,7 +673,7 @@ int main(void)
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
-
+  /*
   if(0 != audio_drv->Play(AUDIO_I2C_ADDRESS, NULL, 0))
   {
       Error_Handler();
@@ -611,6 +682,7 @@ int main(void)
   retVal = HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
   if(HAL_OK != retVal)
     Error_Handler();
+  */
 
   sequencer_set_sample(0,  0x2000, 0x10000);
   sequencer_set_adsr(0, 0, 0, .8, 1);
@@ -638,10 +710,12 @@ int main(void)
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
 
   // Create two tasks
+  /*
   xTaskCreate(blinky, (char*)"blinky", 256, NULL, 1, NULL);
   xTaskCreate(semiquaver, (char*)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char*)"Audio Buffer Manager", 1024, NULL, 16, NULL);
-  xTaskCreate(check_inputs, (char*)"Check Inputs", 256, NULL, 16, NULL);
+  */
+  xTaskCreate(matrix, (char*)"Check Inputs", 256, NULL, 16, NULL);
 
   /* Start scheduler */
   osKernelStart();
