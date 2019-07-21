@@ -21,7 +21,6 @@
 #include "ili9341.h"
 #include "MCP23017.h"
 #include <math.h>
-#include "defines.h"
 
 /* USER CODE BEGIN Includes */
 
