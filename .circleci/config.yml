@@ -6,6 +6,8 @@ jobs:
     steps:
       - checkout
       - run:
+          name: linter
+          command: echo linter
       - run:
           name: build
           command: make
