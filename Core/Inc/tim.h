@@ -2,12 +2,12 @@
 #ifndef __tim_H
 #define __tim_H
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
 #include "main.h"
+#include "stm32f7xx_hal.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -32,9 +32,8 @@ void MX_TIM8_Init(void);
 void MX_TIM10_Init(void);
 void MX_TIM11_Init(void);
 void MX_TIM12_Init(void);
-                    
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                                                
 
 /* USER CODE BEGIN Prototypes */
 void ws2182b_set_pwm(uint16_t value);
@@ -47,11 +46,11 @@ void ws2182b_set_pwm(uint16_t value);
 #endif /*__ tim_H */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

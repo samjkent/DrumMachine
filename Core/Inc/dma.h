@@ -3,15 +3,15 @@
 #define __dma_H
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
 #include "main.h"
+#include "stm32f7xx_hal.h"
 
 /* DMA memory to memory transfer handles -------------------------------------*/
-extern void _Error_Handler(char*, int);
+extern void _Error_Handler(char *, int);
 
 /* USER CODE BEGIN Includes */
 
@@ -34,7 +34,7 @@ void MX_DMA_Init(void);
 #endif /* __dma_H */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

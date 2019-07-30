@@ -1,7 +1,6 @@
-#include "s1d15g00.h"		 									// LCD-NOKIA6610 Epson:S1D1G00 Controller
+#include "s1d15g00.h" // LCD-NOKIA6610 Epson:S1D1G00 Controller
 
-void lcd_init()
-{
+void lcd_init() {
   // Reset
   GPIO_InitTypeDef GPIO_InitStruct;
   GPIO_InitStruct.Pin = GPIO_PIN_11;
@@ -55,36 +54,37 @@ void lcd_init()
 
   // Power control
   lcd_write_command(PWRCTR);
-  lcd_write_data(0x0f); // reference voltage regulator on, circuit voltage follower on, BOOST ON
+  lcd_write_data(0x0f); // reference voltage regulator on, circuit voltage
+                        // follower on, BOOST ON
 
   // Inverse display
   lcd_write_command(DISINV);
 
   // Data control
   lcd_write_command(DATCTL);
-  lcd_write_data(0x01); // P1: 0x01 = page address inverted, column address normal, address scan in column direction
+  lcd_write_data(0x01); // P1: 0x01 = page address inverted, column address
+                        // normal, address scan in column direction
   lcd_write_data(0x00); // P2: 0x00 = RGB sequence (default value)
-  lcd_write_data(0x02); // P3: 0x02 = Grayscale -> 16 (selects 12-bit color, type A)
+  lcd_write_data(
+      0x02); // P3: 0x02 = Grayscale -> 16 (selects 12-bit color, type A)
 
   // Voltage control (contrast setting)
   lcd_write_command(VOLCTR);
-  lcd_write_data(32); // P1 = 32 volume value (experiment with this value to get the best contrast)
-  lcd_write_data(3); // P2 = 3 resistance ratio (only value that works)
+  lcd_write_data(32); // P1 = 32 volume value (experiment with this value to get
+                      // the best contrast)
+  lcd_write_data(3);  // P2 = 3 resistance ratio (only value that works)
 
   // allow power supply to stabilize
   HAL_Delay(1000);
 
   // turn on the display
   lcd_write_command(DISON);
-
 }
 
-void lcd_write(uint8_t notC_D, uint8_t data)
-{
+void lcd_write(uint8_t notC_D, uint8_t data) {
   uint8_t command_byte = 0x00;
 
-  for(int bit = 0; bit < 9; bit++)
-  {
+  for (int bit = 0; bit < 9; bit++) {
     // Clear clock
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
 
@@ -92,11 +92,10 @@ void lcd_write(uint8_t notC_D, uint8_t data)
     HAL_Delay(1);
 
     // Command or Data
-    if(bit == 0)
-    {
+    if (bit == 0) {
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, notC_D);
     } else {
-      uint8_t dataOut = (data << (bit-1)) & 0x08;
+      uint8_t dataOut = (data << (bit - 1)) & 0x08;
       HAL_GPIO_WritePin(GPIOB, GPIO_PIN_15, dataOut);
     }
 
@@ -116,18 +115,11 @@ void lcd_write(uint8_t notC_D, uint8_t data)
   */
 }
 
-void lcd_write_command(uint8_t data)
-{
-  lcd_write(0x00, data);
-}
+void lcd_write_command(uint8_t data) { lcd_write(0x00, data); }
 
-void lcd_write_data(uint8_t data)
-{
-  lcd_write(0x01, data);
-}
+void lcd_write_data(uint8_t data) { lcd_write(0x01, data); }
 
-void lcd_set_pixel(int x, int y, int color)
-{
+void lcd_set_pixel(int x, int y, int color) {
   // Row address set (command 0x2B)
   lcd_write_command(PASET);
   lcd_write_data(x);

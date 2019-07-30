@@ -24,8 +24,7 @@
      PC5   ------> ETH_RXD1
      PA7   ------> ETH_CRS_DV
 */
-void MX_GPIO_Init(void)
-{
+void MX_GPIO_Init(void) {
 
   GPIO_InitTypeDef GPIO_InitStruct;
 
@@ -151,27 +150,25 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  
+
   GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
-  
+
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
-  
+
   // MCP Reset 0
   GPIO_InitStruct.Pin = GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-
-
 }
 
 /* USER CODE BEGIN 2 */
@@ -179,11 +176,11 @@ void MX_GPIO_Init(void)
 /* USER CODE END 2 */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

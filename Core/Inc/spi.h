@@ -2,12 +2,12 @@
 #ifndef __spi_H
 #define __spi_H
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f7xx_hal.h"
 #include "main.h"
+#include "stm32f7xx_hal.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -33,11 +33,11 @@ void MX_SPI2_Init(void);
 #endif /*__ spi_H */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /**
-  * @}
-  */
+ * @}
+ */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
