@@ -4,7 +4,6 @@
 #include "adc.h"
 #include "audio_channel.h"
 #include "cmsis_os.h"
-#include "defines.h"
 #include "dma.h"
 #include "gpio.h"
 #include "i2c.h"
