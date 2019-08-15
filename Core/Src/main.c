@@ -21,7 +21,6 @@
 #include "ili9341.h"
 #include "MCP23017.h"
 #include <math.h>
-#include "defines.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -39,6 +38,9 @@
 #define ADC_BUFF_SIZE 30
 
 #define NUM_OF_CHANNELS 8
+
+#define WS2812B_LOW 2 
+#define WS2812B_HIGH 7 
    
 AUDIO_DrvTypeDef *audio_drv;
 
@@ -68,7 +70,7 @@ uint32_t globalVolume = 0;
   
 MCP23017_HandleTypeDef hmcp;
 
-// LED mapping required on 0.2 control board
+// LED mapping required on 0.3 control board
 uint8_t ledMapping[25] = { 2,9,16,0, 6,13,20,4, 10,17,1,8, 14,21,5,12, 3,7,10,11,12,13,13,15,2};
 
 uint16_t testData[760] = {
@@ -93,102 +95,127 @@ uint16_t testData[760] = {
                             0,0,0,0,0,0,0,0,
                             0,0,0,0,0,0,0,0,
 
+                            // 1
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 2
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 3
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 4
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 5
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 6
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 7
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 8
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 9
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 10
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 11
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 12
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 13
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 14
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 15
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 16
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 17
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 18
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 19
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 20
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 21
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 22
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 23
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 24
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
 
+                            // 25
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2,
                             2,2,2,2,2,2,2,2
@@ -229,7 +256,7 @@ void set_pixel(uint8_t n, uint32_t grb, uint32_t mask)
     for(int i = 0; i < 24; i++){
         // Check mask for each bit
         if(((mask >> (i)) & 0x01))
-            testData[160 + (24 * (m+1)) - (i+1)] = ((grb >> i) & 0x01) ? 6 : 2;
+            testData[160 + (24 * (m+1)) - (i+1)] = ((grb >> i) & 0x01) ? WS2812B_HIGH : WS2812B_LOW;
     }
 }
 
@@ -271,95 +298,13 @@ void update_step(uint8_t key_pressed)
 
 void check_inputs(void *p)
 {
-        uint8_t last_pressed = 0xFF;
-
-        uint8_t column = 0;
-        // Set column
-        hmcp.gpio[1] = 0x01 << 0;
-        mcp23017_write_gpio(&hmcp, MCP23017_PORTB);
 
         while(1)
         {
-                // Read rows
-                mcp23017_read_gpio(&hmcp, MCP23017_PORTA);
-                mcp23017_read_gpio(&hmcp, MCP23017_PORTB);
-
-                // Row 1
-                if(hmcp.gpio[1] & (1 << 5) && last_pressed != 0x03) {
-                    update_step(column*5 + 0);
-                } else if(hmcp.gpio[1] & (1 << 6) && last_pressed != 0x07) {
-                    update_step(column*5 + 1);
-                } else if(hmcp.gpio[1] & (1 << 7) && last_pressed != 0x0A) {
-                    update_step(column*5 + 2);
-                } else if(hmcp.gpio[0] & (1 << 0) && last_pressed != 0x0E) {
-                    update_step(column*5 + 3);
-                } else if(hmcp.gpio[0] & (1 << 1) && last_pressed != 0x02) {
-                    update_step(column*5 + 4);
-                }
-
-                if(column == 4) {
-                    column = 0;
-                } else {
-                    column++;
-                }
-                
-                // Set column
-                hmcp.gpio[1] = 0x01 << column;
-                mcp23017_write_gpio(&hmcp, MCP23017_PORTB);
-                
-            /*    
-            uint8_t key_pressed = key_scan();
-            char key_uart[10];
-            sprintf(key_uart, "Pressed: %d", key_pressed);
-
-            // If a key has been pressed
-            switch(mode)
-            {
-              case SELECTOR:
-              {
-                  // Select sample
-                  if(key_pressed < 8)
-                  {
-                      //  Choose sample
-                      sequencer_channel = key_pressed;
-                      
-                      break;
-                  }
-
-                  // If key is < 8 do function on selected sample
-              }
-              break;
-
-              case SEQUENCER:
-              {
-                // Update sequencer
-                sequencer_set_pattern(sequencer_channel, (sequencer[sequencer_channel].note_on ^= 1 << key_pressed));
-                // Update sequencer LEDs
-                for(int i = 0; i < 16; i++){
-                    // Clear red note data
-                    set_pixel(i, 0x000000, 0x00FF00);
-
-                    // Set if note on
-                    if(sequencer[sequencer_channel].note_on & (1 << i))
-                        set_pixel(i, 0x000F00, 0x00FF00);
-                }
-              break;
-              }
-
-              case LIVE:
-              {
-                for(int i = 0; i < 16; i++){
-                    // Clear red note data
-                    set_pixel(i, 0x000000, 0xFFFFFF);
-                }
-                sequencer[key_pressed].sample_progress = 0;
-                // Set selected note on
-                set_pixel(key_pressed, 0x0F0000, 0xFF0000);
-              }
-            }
+            // Read rows
+            mcp23017_read_gpio(&hmcp, MCP23017_PORTA);
+            mcp23017_read_gpio(&hmcp, MCP23017_PORTB);
             
-            */
-
             vTaskDelay(20 / portTICK_PERIOD_MS);
 
         }
@@ -587,7 +532,10 @@ int main(void)
 
   mcp23017_init(&hmcp, &hi2c1, MCP23017_ADDRESS_20);
   mcp23017_iodir(&hmcp, MCP23017_PORTA, MCP23017_IODIR_ALL_INPUT);
-  mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_ALL_OUTPUT | MCP23017_IODIR_IO5_INPUT | MCP23017_IODIR_IO6_INPUT | MCP23017_IODIR_IO7_INPUT);
+  mcp23017_iodir(&hmcp, MCP23017_PORTB, MCP23017_IODIR_ALL_INPUT);
+
+  mcp23017_ggpu(&hmcp, MCP23017_PORTA, MCP23017_GPPU_ALL_ENABLED);
+  mcp23017_ggpu(&hmcp, MCP23017_PORTB, MCP23017_GPPU_ALL_ENABLED);
 
   MX_DMA_Init();
 
@@ -596,9 +544,13 @@ int main(void)
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
 
+  for(int x = 0; x < 25; x++) 
+    set_pixel(x, 0xFFFFFF, 0xFFFFFF);
+
   MX_TIM8_Init();
   HAL_TIM_PWM_Start_DMA (&htim8, TIM_CHANNEL_2, (uint32_t *)(&testData[0]), 760); 
-  
+
+  while(1); 
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
