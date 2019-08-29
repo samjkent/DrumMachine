@@ -15,8 +15,8 @@
 #define REGISTER_DEFVALB	0x07
 #define REGISTER_INTCONA	0x08
 #define REGISTER_INTCONB	0x09
-//	IOCON			0x0A
-//	IOCON			0x0B
+#define REGISTER_IOCONA 	0x0A
+#define REGISTER_IOCONB 	0x0B
 #define REGISTER_GPPUA		0x0C
 #define REGISTER_GPPUB		0x0D
 #define REGISTER_INTFA		0x0E
@@ -81,8 +81,38 @@ HAL_StatusTypeDef mcp23017_read_gpio(MCP23017_HandleTypeDef *hdev, uint8_t port)
 	return status;
 }
 
+HAL_StatusTypeDef mcp23017_read_intf(MCP23017_HandleTypeDef *hdev, uint8_t port)
+{
+	uint8_t data[1];
+	HAL_StatusTypeDef status;
+	status = mcp23017_read(hdev, REGISTER_INTFA|port, data);
+	if (status == HAL_OK)
+		hdev->intf[port] = data[0];
+	return status;
+}
+
 HAL_StatusTypeDef mcp23017_write_gpio(MCP23017_HandleTypeDef *hdev, uint8_t port)
 {
 	uint8_t data[1] = {hdev->gpio[port]};
 	return mcp23017_write(hdev, REGISTER_GPIOA|port, data);
+}
+
+HAL_StatusTypeDef mcp23017_iocon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value)
+{
+	return mcp23017_write(hdev, REGISTER_IOCONA|port, value);
+}
+
+HAL_StatusTypeDef mcp23017_gpinten(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value)
+{
+	return mcp23017_write(hdev, REGISTER_GPINTENA|port, value);
+}
+
+HAL_StatusTypeDef mcp23017_defval(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value)
+{
+	return mcp23017_write(hdev, REGISTER_DEFVALA|port, value);
+}
+
+HAL_StatusTypeDef mcp23017_intcon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value)
+{
+	return mcp23017_write(hdev, REGISTER_INTCONA|port, value);
 }
