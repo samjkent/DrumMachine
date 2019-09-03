@@ -70,6 +70,7 @@ typedef struct {
 	uint16_t		addr;
 	uint8_t			gpio[2];
 	uint8_t			intf[2];
+	uint8_t			intcap[2];
 } MCP23017_HandleTypeDef;
 
 void    		mcp23017_init(MCP23017_HandleTypeDef *hdev, I2C_HandleTypeDef *hi2c, uint16_t addr);
@@ -80,8 +81,9 @@ HAL_StatusTypeDef	mcp23017_ipol(MCP23017_HandleTypeDef *hdev, uint8_t port, uint
 HAL_StatusTypeDef	mcp23017_ggpu(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t pu);
 HAL_StatusTypeDef	mcp23017_read_gpio(MCP23017_HandleTypeDef *hdev, uint8_t port);
 HAL_StatusTypeDef	mcp23017_read_intf(MCP23017_HandleTypeDef *hdev, uint8_t port);
+HAL_StatusTypeDef	mcp23017_read_intcap(MCP23017_HandleTypeDef *hdev, uint8_t port);
 HAL_StatusTypeDef	mcp23017_write_gpio(MCP23017_HandleTypeDef *hdev, uint8_t port);
-HAL_StatusTypeDef   mcp23017_iocon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value);
-HAL_StatusTypeDef   mcp23017_gpinten(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value);
-HAL_StatusTypeDef   mcp23017_defval(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value);
-HAL_StatusTypeDef   mcp23017_intcon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t value);
+HAL_StatusTypeDef   mcp23017_iocon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t iocon);
+HAL_StatusTypeDef   mcp23017_gpinten(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t gpinten);
+HAL_StatusTypeDef   mcp23017_defval(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t defval);
+HAL_StatusTypeDef   mcp23017_intcon(MCP23017_HandleTypeDef *hdev, uint8_t port, uint8_t intcon);
