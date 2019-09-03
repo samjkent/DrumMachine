@@ -20,6 +20,7 @@
 #include "usart.h"
 #include "wm8994.h"
 #include "wwdg.h"
+#include "gui.h"
 #include <math.h>
 
 /* USER CODE BEGIN Includes */
@@ -173,7 +174,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 
   } else if (GPIO_Pin == GPIO_PIN_0) {
-    mode = (mode + 1) % 3;
+        // Button on reverse of STM32 DISCO board
   }
 }
 
@@ -383,8 +384,7 @@ void audioBufferManager(void *p) {
         for (int i = 0; i < NUM_OF_CHANNELS; i++) {
           if (sequencer[i].sample_progress < sequencer[i].sample_length) {
             int16_t sample =
-                (*(uint16_t *)(AUDIO_FILE_ADDRESS +
-                               (uint32_t)sequencer[i].sample_start +
+                (*(uint16_t *)((uint32_t)sequencer[i].sample_start +
                                (uint32_t)sequencer[i].sample_progress));
             SaiBufferSample += (int16_t)((sample)*sequencer_get_adsr(i));
             sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
@@ -419,78 +419,6 @@ void Delay(int counter) {
     ;
 }
 
-void drawTicks(int fs, int div, int size, int windowSize, int x, int yPos) {
-  int next = ((x + 1) * windowSize) % (fs / div);
-  int curr = ((x)*windowSize) % (fs / div);
-  if (next < curr) {
-    for (int16_t y = -size; y <= size; y++)
-      ILI9341_DrawPixel(x, yPos + y, ILI9341_BLUE);
-  }
-}
-
-void drawChannel(int channel, int yPos) {
-  // For x 0->240
-  int32_t memory;
-  int16_t sample;
-  int16_t max, min;
-  int16_t prevSample = 0;
-  int16_t windowSize = 100;
-  uint32_t lastAddress = 0;
-  // For x 0->240
-  for (int x = 0; x < 300; x++) {
-    max = 0;
-    min = 0;
-
-    for (int n = 0; n < windowSize; n++) {
-
-      memory =
-          *(int32_t *)(AUDIO_FILE_ADDRESS + (x * 4 * windowSize) +
-                       (4 *
-                        n)); // + (uint32_t)(x*windowSize) + (uint32_t)(32*n));
-
-      if (channel == 0)
-        sample = (int16_t)(memory >> 16);
-
-      if (channel == 1)
-        sample = (int16_t)(0xFFFF & memory);
-
-      sample = sample / 640;
-
-      if (sample > max)
-        max = sample;
-      if (sample < min)
-        min = sample;
-    }
-
-    // If the window size is large the waveform will not be accurate
-    // This provides a better overview of the window
-    if (windowSize > 200) {
-      for (int16_t y = min; y <= max; y++)
-        ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_YELLOW);
-    } else {
-
-      // Draw wave
-      if (prevSample < sample) {
-        for (int16_t y = prevSample; y <= sample; y++)
-          ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_GREEN);
-      } else {
-        for (int16_t y = prevSample; y >= sample; y--)
-          ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_GREEN);
-      }
-    }
-
-    // Draw zero
-    ILI9341_DrawPixel(x + 10, yPos, ILI9341_BLUE);
-
-    // Draw .1 sec marker
-    drawTicks(44100, 10, 2, windowSize, x, yPos);
-
-    // Draw 1 sec marker
-    drawTicks(44100, 1, 5, windowSize, x, yPos);
-
-    prevSample = sample;
-  }
-}
 
 int main(void) {
   HAL_Init();
@@ -506,45 +434,6 @@ int main(void) {
   HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_0, GPIO_PIN_RESET);
 
   ILI9341_Init();
-  ILI9341_FillScreen(ILI9341_BLACK);
-  ILI9341_WriteString(5, 5, (char *)"808_kick.wav", Font_11x18, ILI9341_WHITE,
-                      ILI9341_BLACK);
-  drawChannel(0, 80);
-
-  ILI9341_WriteString(5, 140, (char *)"Sample", Font_7x10, ILI9341_WHITE,
-                      ILI9341_BLACK);
-  ILI9341_WriteString(5, 150, (char *)"ADSR", Font_7x10, ILI9341_WHITE,
-                      ILI9341_BLACK);
-  ILI9341_WriteString(5, 165, (char *)"Filter", Font_11x18, ILI9341_WHITE,
-                      ILI9341_BLACK);
-  ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10, ILI9341_WHITE,
-                      ILI9341_BLACK);
-  ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10, ILI9341_WHITE,
-                      ILI9341_BLACK);
-
-  ILI9341_DrawHLine(80, 140, 230, ILI9341_WHITE);
-
-  // Fake filter env
-  for (int x = 0; x < 20; x++) {
-    ILI9341_DrawPixel(100 + x, 180.0 - (2 * x), ILI9341_WHITE);
-  }
-  for (int x = 0; x < 40; x++) {
-    ILI9341_DrawPixel(120 + x, 140, ILI9341_WHITE);
-  }
-
-  ILI9341_WriteString(170, 140, (char *)"Cut Off: 20 Hz", Font_7x10,
-                      ILI9341_WHITE, ILI9341_BLACK);
-  ILI9341_WriteString(170, 150, (char *)"Resonance: 0%", Font_7x10,
-                      ILI9341_WHITE, ILI9341_BLACK);
-  ILI9341_WriteString(170, 160, (char *)"LFO Amount: 20%", Font_7x10,
-                      ILI9341_WHITE, ILI9341_BLACK);
-  ILI9341_WriteString(170, 170, (char *)"LFO Freq: 1/6", Font_7x10,
-                      ILI9341_WHITE, ILI9341_BLACK);
-  ILI9341_WriteString(170, 180, (char *)"Type: High Pass", Font_7x10,
-                      ILI9341_WHITE, ILI9341_BLACK);
-
-  // MX_USART1_UART_Init();
-  // drawChannel(1, 240);
 
   HAL_GPIO_WritePin(GPIOF, GPIO_PIN_7, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_0, GPIO_PIN_SET);
@@ -597,28 +486,28 @@ int main(void) {
   if (HAL_OK != retVal)
     Error_Handler();
 
-  sequencer_set_sample(0, 0x2000, 0x10000);
+  sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x2000, 0x10000);
   sequencer_set_adsr(0, .2, 0, 1, 2);
 
-  sequencer_set_sample(1, 0x16000, 0xF000);
+  sequencer_set_sample(1, AUDIO_FILE_ADDRESS + 0x16000, 0xF000);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(2, 0x2A000, 0xF000);
+  sequencer_set_sample(2, AUDIO_FILE_ADDRESS + 0x2A000, 0xF000);
   sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(3, 0x3F000, 0xF000);
+  sequencer_set_sample(3, AUDIO_FILE_ADDRESS + 0x3F000, 0xF000);
   sequencer_set_adsr(3, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(4, 0x58000, 0x10000);
+  sequencer_set_sample(4, AUDIO_FILE_ADDRESS + 0x58000, 0x10000);
   sequencer_set_adsr(4, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(5, 0x6B000, 0x2000);
+  sequencer_set_sample(5, AUDIO_FILE_ADDRESS + 0x6B000, 0x2000);
   sequencer_set_adsr(5, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(6, 0x81000, 0xF000);
+  sequencer_set_sample(6, AUDIO_FILE_ADDRESS + 0x81000, 0xF000);
   sequencer_set_adsr(6, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(7, 0x28000, 0xF000);
+  sequencer_set_sample(7, AUDIO_FILE_ADDRESS + 0x28000, 0xF000);
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
 
   // Create two tasks
@@ -627,6 +516,7 @@ int main(void) {
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL,
               16, NULL);
   xTaskCreate(check_inputs, (char *)"Check Inputs", 256, NULL, 16, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
 
   /* Start scheduler */
   osKernelStart();
