@@ -186,7 +186,7 @@ void WM8894_Init() {
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 100,
+  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 128,
                            AUDIO_FREQUENCY_22K)) {
     Error_Handler();
   }
@@ -340,7 +340,7 @@ void semiquaver(void *p) {
   xLastWakeTime = xTaskGetTickCount();
 
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, (117) / portTICK_PERIOD_MS); // 117
+    vTaskDelayUntil(&xLastWakeTime, (114) / portTICK_PERIOD_MS); // 117 = 128 bpm
 
     for (int i = 0; i < NUM_OF_CHANNELS; i++) {
       if (sequencer[i].note_on & (1 << current_step))
@@ -486,28 +486,28 @@ int main(void) {
   if (HAL_OK != retVal)
     Error_Handler();
 
-  sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x2000, 0x10000);
+  sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x600, 0x7000);
   sequencer_set_adsr(0, .2, 0, 1, 2);
 
-  sequencer_set_sample(1, AUDIO_FILE_ADDRESS + 0x16000, 0xF000);
+  sequencer_set_sample(1, AUDIO_FILE_ADDRESS + 0x15000, 0x8000);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(2, AUDIO_FILE_ADDRESS + 0x2A000, 0xF000);
+  sequencer_set_sample(2, AUDIO_FILE_ADDRESS + 0x2A000, 0x4000);
   sequencer_set_adsr(2, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(3, AUDIO_FILE_ADDRESS + 0x3F000, 0xF000);
+  sequencer_set_sample(3, AUDIO_FILE_ADDRESS + 0x40000, 0x6000);
   sequencer_set_adsr(3, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(4, AUDIO_FILE_ADDRESS + 0x58000, 0x10000);
+  sequencer_set_sample(4, AUDIO_FILE_ADDRESS + 0x58000, 0x4000);
   sequencer_set_adsr(4, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(5, AUDIO_FILE_ADDRESS + 0x6B000, 0x2000);
+  sequencer_set_sample(5, AUDIO_FILE_ADDRESS + 0x80000, 0x8000);
   sequencer_set_adsr(5, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(6, AUDIO_FILE_ADDRESS + 0x81000, 0xF000);
+  sequencer_set_sample(6, AUDIO_FILE_ADDRESS + 0x81000, 0x8000);
   sequencer_set_adsr(6, 0, 0.2, 0.5, 1);
 
-  sequencer_set_sample(7, AUDIO_FILE_ADDRESS + 0x28000, 0xF000);
+  sequencer_set_sample(7, AUDIO_FILE_ADDRESS + 0x96000, 0x8000);
   sequencer_set_adsr(7, 0, 0.2, 0.5, 1);
 
   // Create two tasks
