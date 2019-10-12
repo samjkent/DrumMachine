@@ -36,6 +36,7 @@ BUILD_DIR = build
 ######################################
 # C sources
 C_SOURCES =  \
+Core/Src/buttons.c \
 Core/Src/main.c \
 Core/Src/gpio.c \
 Core/Src/dma.c \
@@ -53,6 +54,7 @@ Core/Src/spi.c \
 Core/Src/tim.c \
 Core/Src/usart.c \
 Core/Src/usb_otg.c \
+Core/Src/ws2812b.c \
 Core/Src/wwdg.c \
 Core/Src/MCP23017.c \
 Sequencer/Src/audio_channel.c \
