@@ -191,8 +191,6 @@ int main(void) {
   ILI9341_Init();
 
   MX_DMA_Init();
-  ws2812b_init();
-
   buttons_init();
 
   // MX_USART1_UART_Init();
@@ -201,6 +199,8 @@ int main(void) {
   WM8894_Init();
 
   sample_manager_init();
+  
+  ws2812b_init();
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
