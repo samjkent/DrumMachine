@@ -54,8 +54,6 @@ int current_step = 0;
 
 volatile uint8_t retVal;
 
-uint32_t globalVolume = 0;
-
 TaskHandle_t xAudioBufferManager;
 
 void SystemClock_Config(void);
