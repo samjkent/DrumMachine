@@ -45,7 +45,7 @@ extern uint8_t sequencer_channel;
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t SaiBufferSample = 0x0;
 
-uint32_t ADCBuffer[ADC_BUFF_SIZE];
+uint16_t ADCBuffer[ADC_BUFF_SIZE];
 
 volatile int UpdatePointer = -1;
 uint32_t playProgress;
@@ -89,6 +89,17 @@ void WM8894_Init() {
 void blinky(void *p) {
   // General task thread
   while (1) {
+
+    /*
+    for(uint8_t x = 0; x < 8; x++) {
+        // uint8_t send = ADCBuffer[x] >> 4;
+        char send[20];
+        sprintf(&send, "ADC values: %d \r\n", ADCBuffer[x]/41);
+        HAL_UART_Transmit(&huart1, &send, sizeof(send), HAL_MAX_DELAY);
+    }
+    */
+    audio_drv->SetVolume(AUDIO_I2C_ADDRESS, ADCBuffer[0]/41);
+
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
@@ -193,7 +204,7 @@ int main(void) {
   MX_DMA_Init();
   buttons_init();
 
-  // MX_USART1_UART_Init();
+  MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
@@ -201,6 +212,11 @@ int main(void) {
   sample_manager_init();
   
   ws2812b_init();
+
+  MX_ADC1_Init();
+  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer[0]), ADC_BUFF_SIZE) != HAL_OK) {
+          Error_Handler();
+  }
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
