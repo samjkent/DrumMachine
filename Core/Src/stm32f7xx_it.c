@@ -15,7 +15,9 @@ extern TIM_HandleTypeDef htim1;
 extern SAI_HandleTypeDef SaiHandle;
 
 extern ADC_HandleTypeDef hadc1;
+extern ADC_HandleTypeDef hadc3;
 extern DMA_HandleTypeDef hdma_adc1;
+extern DMA_HandleTypeDef hdma_adc3;
 
 /******************************************************************************/
 /*            Cortex-M7 Processor Interruption and Exception Handlers         */
@@ -120,10 +122,11 @@ void DMA2_Stream0_IRQHandler(void)
    HAL_DMA_IRQHandler(&hdma_adc1);
 }
 
-void ADC_IRQHandler(void)
+void DMA2_Stream1_IRQHandler(void)
 {
-    HAL_ADC_IRQHandler(&hadc1);
+   HAL_DMA_IRQHandler(&hdma_adc3);
 }
+
 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

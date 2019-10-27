@@ -11,6 +11,7 @@ ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc3;
 
 DMA_HandleTypeDef hdma_adc1;
+DMA_HandleTypeDef hdma_adc3;
 
 /* ADC1 init function */
 void MX_ADC1_Init(void)
@@ -77,17 +78,18 @@ void MX_ADC3_Init(void)
     /**Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
     */
   hadc3.Instance = ADC3;
-  hadc3.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
-  hadc3.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc3.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc3.Init.ClockPrescaler = ADC_CLOCKPRESCALER_PCLK_DIV2;
+  hadc3.Init.Resolution = ADC_RESOLUTION12b;
+  hadc3.Init.ScanConvMode = ENABLE;
   hadc3.Init.ContinuousConvMode = ENABLE;
   hadc3.Init.DiscontinuousConvMode = DISABLE;
+  hadc3.Init.NbrOfDiscConversion = 0;
   hadc3.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc3.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc3.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc3.Init.NbrOfConversion = 1;
-  hadc3.Init.DMAContinuousRequests = DISABLE;
-  hadc3.Init.EOCSelection = EOC_SEQ_CONV;
+  hadc3.Init.NbrOfConversion = 3;
+  hadc3.Init.DMAContinuousRequests = ENABLE;
+  hadc3.Init.EOCSelection = DISABLE;
   if (HAL_ADC_Init(&hadc3) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -95,14 +97,33 @@ void MX_ADC3_Init(void)
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
-  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Channel = ADC_CHANNEL_8;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+    
+  /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_6;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
+  /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
+    */
+  sConfig.Channel = ADC_CHANNEL_7;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc3, &sConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 }
 
 void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
@@ -177,6 +198,27 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 
   /* USER CODE BEGIN ADC3_MspInit 1 */
 
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  /* USER CODE BEGIN ADC1_MspInit 1 */
+  hdma_adc3.Instance = DMA2_Stream1;
+  hdma_adc3.State = HAL_DMA_STATE_READY;
+  hdma_adc3.Init.Channel = DMA_CHANNEL_2;
+  hdma_adc3.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  hdma_adc3.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_adc3.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_adc3.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+  hdma_adc3.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
+  hdma_adc3.Init.Mode = DMA_CIRCULAR;
+  hdma_adc3.Init.Priority = DMA_PRIORITY_LOW;
+  if (HAL_DMA_Init(&hdma_adc3) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  __HAL_LINKDMA(&hadc3,DMA_Handle,hdma_adc3);
+  
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
   /* USER CODE END ADC3_MspInit 1 */
   }
 }
