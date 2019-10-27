@@ -76,7 +76,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN SPI2_MspInit 1 */
-  __HAL_RCC_DMA2_CLK_ENABLE();
+  __HAL_RCC_DMA1_CLK_ENABLE();
   hdma_spi2.Instance = DMA1_Stream4;
   hdma_spi2.State = HAL_DMA_STATE_READY;
   hdma_spi2.Init.Channel = DMA_CHANNEL_0;
