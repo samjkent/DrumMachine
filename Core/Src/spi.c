@@ -9,6 +9,8 @@
 
 SPI_HandleTypeDef hspi2;
 
+DMA_HandleTypeDef hdma_spi2;
+
 /* SPI2 init function */
 void MX_SPI2_Init(void)
 {
@@ -74,6 +76,26 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN SPI2_MspInit 1 */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+  hdma_spi2.Instance = DMA1_Stream4;
+  hdma_spi2.State = HAL_DMA_STATE_READY;
+  hdma_spi2.Init.Channel = DMA_CHANNEL_0;
+  hdma_spi2.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_spi2.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_spi2.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_spi2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_spi2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_spi2.Init.Mode = DMA_CIRCULAR;
+  hdma_spi2.Init.Priority = DMA_PRIORITY_LOW;
+  if (HAL_DMA_Init(&hdma_spi2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  __HAL_LINKDMA(&hspi2,hdmatx,hdma_spi2);
+  
+  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
   /* USER CODE END SPI2_MspInit 1 */
   }

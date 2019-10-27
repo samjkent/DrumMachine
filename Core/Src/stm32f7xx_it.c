@@ -19,6 +19,9 @@ extern ADC_HandleTypeDef hadc3;
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc3;
 
+extern SPI_HandleTypeDef spi2;
+extern DMA_HandleTypeDef hdma_spi2;
+
 /******************************************************************************/
 /*            Cortex-M7 Processor Interruption and Exception Handlers         */
 /******************************************************************************/
@@ -125,6 +128,11 @@ void DMA2_Stream0_IRQHandler(void)
 void DMA2_Stream1_IRQHandler(void)
 {
    HAL_DMA_IRQHandler(&hdma_adc3);
+}
+
+void DMA1_Stream4_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&hdma_spi2);
 }
 
 

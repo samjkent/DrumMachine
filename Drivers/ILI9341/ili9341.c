@@ -19,7 +19,7 @@ static void ILI9341_Reset() {
 
 static void ILI9341_WriteCommand(uint8_t cmd) {
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&ILI9341_SPI_PORT, &cmd, sizeof(cmd), HAL_MAX_DELAY);
+    HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, &cmd, sizeof(cmd));
 }
 
 static void ILI9341_WriteData(uint8_t* buff, size_t buff_size) {
@@ -28,7 +28,7 @@ static void ILI9341_WriteData(uint8_t* buff, size_t buff_size) {
     // split data in small chunks because HAL can't send more then 64K at once
     while(buff_size > 0) {
         uint16_t chunk_size = buff_size > 32768 ? 32768 : buff_size;
-        HAL_SPI_Transmit(&ILI9341_SPI_PORT, buff, chunk_size, HAL_MAX_DELAY);
+        HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, buff, chunk_size);
         buff += chunk_size;
         buff_size -= chunk_size;
     }
@@ -300,7 +300,7 @@ void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
     for(y = h; y > 0; y--) {
         for(x = w; x > 0; x--) {
-            HAL_SPI_Transmit(&ILI9341_SPI_PORT, data, sizeof(data), HAL_MAX_DELAY);
+            HAL_SPI_Transmit_DMA(&ILI9341_SPI_PORT, data, sizeof(data));
         }
     }
 
