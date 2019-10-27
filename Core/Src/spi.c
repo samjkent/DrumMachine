@@ -94,8 +94,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
 
   __HAL_LINKDMA(&hspi2,hdmatx,hdma_spi2);
   
-  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
   /* USER CODE END SPI2_MspInit 1 */
   }
