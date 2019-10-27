@@ -235,7 +235,7 @@ int main(void) {
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL,
               16, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
-  //xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 14, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 14, NULL);
 
   /* Start scheduler */
   osKernelStart();
