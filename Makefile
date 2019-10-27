@@ -157,7 +157,6 @@ C_INCLUDES =  \
 -IDrivers/LCD \
 -ISequencer/Inc \
 -Ilibs/lib_delay/inc \
--Ilibs/lib_PCF8833/inc \
 -IDrivers/ILI9341 \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \

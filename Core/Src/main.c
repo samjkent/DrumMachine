@@ -291,7 +291,7 @@ void SystemClock_Config(void) {
       RCC_PERIPHCLK_USART6 | RCC_PERIPHCLK_UART5 | RCC_PERIPHCLK_I2C1 |
       RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SDMMC2;
   PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
-  PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLP_DIV2;
+  PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLP_DIV4;
   PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
   PeriphClkInitStruct.PLLI2S.PLLI2SQ = 2;
   PeriphClkInitStruct.PLLI2SDivQ = 1;

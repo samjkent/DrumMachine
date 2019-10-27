@@ -6,7 +6,10 @@ extern int sequencer_channel;
 void gui_task(void *p) {
 
   int previous_sequencer_channel = -1;
-  ILI9341_FillScreen(GUI_BACKGROUND_COLOUR);
+  while(1) {
+    ILI9341_FillRectangle(10, 10, 100, 100, GUI_FOREGROUND_COLOUR);
+    ILI9341_FillRectangle(10, 10, 100, 100, GUI_BACKGROUND_COLOUR);
+  }
 
   while (1) {
 
