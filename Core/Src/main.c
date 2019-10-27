@@ -28,7 +28,7 @@
 /* Private variables ---------------------------------------------------------*/
 #define PLAY_BUFF_SIZE 256
 
-#define ADC_BUFF_SIZE 30
+#define ADC_BUFF_SIZE 30 
 
 #define NUM_OF_CHANNELS 8
 
@@ -45,7 +45,8 @@ extern uint8_t sequencer_channel;
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t SaiBufferSample = 0x0;
 
-uint32_t ADCBuffer[ADC_BUFF_SIZE];
+uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
+uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
 
 volatile int UpdatePointer = -1;
 uint32_t playProgress;
@@ -89,6 +90,11 @@ void WM8894_Init() {
 void blinky(void *p) {
   // General task thread
   while (1) {
+
+    char send[80];
+    int len = sprintf(&send, "ADC values: %d %d %d %d %d %d\r\n", ADCBuffer_1[0]/41, ADCBuffer_1[1]/41, ADCBuffer_1[2]/41, ADCBuffer_3[0]/41, ADCBuffer_3[1]/41, ADCBuffer_3[2]/41);
+    HAL_UART_Transmit(&huart1, &send, len, HAL_MAX_DELAY);
+
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
@@ -193,7 +199,7 @@ int main(void) {
   MX_DMA_Init();
   buttons_init();
 
-  // MX_USART1_UART_Init();
+  MX_USART1_UART_Init();
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
@@ -201,6 +207,16 @@ int main(void) {
   sample_manager_init();
   
   ws2812b_init();
+
+  MX_ADC1_Init();
+  MX_ADC3_Init();
+  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer_1), ADC_BUFF_SIZE) != HAL_OK) {
+          Error_Handler();
+  }
+
+  if(HAL_ADC_Start_DMA(&hadc3, (uint32_t *)(&ADCBuffer_3), ADC_BUFF_SIZE) != HAL_OK) {
+          Error_Handler();
+  }
 
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
@@ -218,8 +234,8 @@ int main(void) {
   xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 16, NULL);
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL,
               16, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 16, NULL);
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
+  //xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 14, NULL);
 
   /* Start scheduler */
   osKernelStart();
