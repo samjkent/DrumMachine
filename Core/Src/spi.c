@@ -22,7 +22,7 @@ void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -103,8 +103,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
   hdma_spi2.Init.MemInc = DMA_MINC_ENABLE;
   hdma_spi2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   hdma_spi2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  hdma_spi2.Init.Mode = DMA_CIRCULAR;
-  hdma_spi2.Init.Priority = DMA_PRIORITY_LOW;
+  hdma_spi2.Init.Mode = DMA_NORMAL;
+  hdma_spi2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
   if (HAL_DMA_Init(&hdma_spi2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);

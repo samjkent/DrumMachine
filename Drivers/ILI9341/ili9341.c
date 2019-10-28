@@ -297,7 +297,7 @@ void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
 
     char send[80];
     int len = sprintf(&send, "Start Fill\r\n");
-    HAL_UART_Transmit(&huart1, &send, len, HAL_MAX_DELAY);
+    HAL_UART_Transmit_DMA(&huart1, &send, len);
 
     HAL_GPIO_WritePin(ILI9341_DC_GPIO_Port, ILI9341_DC_Pin, GPIO_PIN_SET);
     for(y = h; y > 0; y--) {
