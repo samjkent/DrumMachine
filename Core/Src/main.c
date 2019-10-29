@@ -194,8 +194,6 @@ int main(void) {
 
   MX_I2C1_Init();
 
-  ILI9341_Init();
-
   MX_DMA_Init();
   buttons_init();
 

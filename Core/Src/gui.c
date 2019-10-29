@@ -1,15 +1,39 @@
 #include "gui.h"
+#include "spi.h"
+#include "ili9341_gfx.h"
 #include "audio_channel.h"
 
 extern int sequencer_channel;
 
+ILI9341 ili9341;
+
 void gui_task(void *p) {
+  // Init screen
+  ILI9341_Struct_Reset(&ili9341);
+
+  ili9341.hspi = &hspi2;
+
+  ili9341.cs_gpio_base = GPIOJ;
+  ili9341.cs_gpio_pin = GPIO_PIN_3;
+  
+  ili9341.dc_gpio_base = GPIOJ;
+  ili9341.dc_gpio_pin = GPIO_PIN_4;
+  
+  ili9341.rst_gpio_base = GPIOH;
+  ili9341.rst_gpio_pin = GPIO_PIN_6;
+
+  ili9341.screen_height = 320;
+  ili9341.screen_width = 240;
+  
+  ILI9341_SPI_Init(&ili9341);
+  ILI9341_Init(&ili9341);
 
   int previous_sequencer_channel = -1;
-  ILI9341_FillScreen(GUI_BACKGROUND_COLOUR);
 
   while (1) {
-
+  ILI9341_Fill_Screen(&ili9341, BLACK);
+  ILI9341_Fill_Screen(&ili9341, WHITE);
+    /*
     // Check if update is required
     if(previous_sequencer_channel != sequencer_channel) {
         // Set previous_sequencer_channel
@@ -54,10 +78,12 @@ void gui_task(void *p) {
                         GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
     ILI9341_WriteString(170, 180, (char *)"Type: High Pass", Font_7x10,
                         GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-
+    */
     vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
+
+/*
 
 void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
                     int yPos) {
@@ -137,3 +163,4 @@ void gui_draw_waveform(int track, int channel, int yPos) {
     prevSample = sample;
   }
 }
+*/
