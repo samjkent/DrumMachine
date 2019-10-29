@@ -48,6 +48,7 @@ Core/Src/MCP23017.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
 Drivers/ILI9341/ili9341.c \
+Drivers/ILI9341/ili9341_gfx.c \
 Drivers/ILI9341/fonts.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
