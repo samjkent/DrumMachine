@@ -93,7 +93,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
   
 
-  /* DMA
   __HAL_RCC_DMA1_CLK_ENABLE();
   hdma_spi2.Instance = DMA1_Stream4;
   hdma_spi2.State = HAL_DMA_STATE_READY;
@@ -115,7 +114,6 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
 
-  NO DMA*/
   }
 }
 

@@ -2,7 +2,7 @@
 #include "ili9341.h"
 
 #define GUI_BACKGROUND_COLOUR BLACK
-#define GUI_FOREGROUND_COLOUR ILI9341_WHITE
+#define GUI_FOREGROUND_COLOUR WHITE
 
 void gui_task(void *p);
 
