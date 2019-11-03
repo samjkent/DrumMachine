@@ -189,6 +189,9 @@ int main(void) {
   HAL_Init();
   SystemClock_Config();
 
+  SCB_EnableICache();
+  SCB_EnableDCache();
+
   MX_GPIO_Init();
   MX_SPI2_Init();
 
@@ -231,7 +234,7 @@ int main(void) {
   // xTaskCreate(blinky, (char *)"blinky", 256, NULL, 8, NULL);
   // xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
   // xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
-  // xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
   xTaskCreate(gui_task, (char *)"GUI Task", 512, NULL, 16, NULL);
 
   /* Start scheduler */

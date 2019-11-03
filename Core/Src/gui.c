@@ -44,19 +44,20 @@ void gui_task(void *p) {
         char channel = sequencer_channel + '0';
         ILI9341_Draw_Text(&ili9341, &channel, 5, 5, GUI_FOREGROUND_COLOUR, 5, GUI_BACKGROUND_COLOUR);
         gui_draw_waveform(sequencer_channel, 0, 80);
+
+        ILI9341_Draw_Text(&ili9341, (char *)"Sample", 5, 140, GUI_FOREGROUND_COLOUR, 2, GUI_BACKGROUND_COLOUR);
+        /*
+        ILI9341_Draw_Text(&ili9341, (char *)"ADSR", 5, 150, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
+        ILI9341_Draw_Text(&ili9341, (char *)"Filter", 5, 160, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
+        ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 170, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
+        ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 180, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
+        */
+
+        ILI9341_Draw_Horizontal_Line(&ili9341, 80, 140, 230, GUI_FOREGROUND_COLOUR);
+
     }
 
-    ILI9341_Draw_Text(&ili9341, (char *)"Sample", 5, 140, GUI_FOREGROUND_COLOUR, 2, GUI_BACKGROUND_COLOUR);
-    /*
-    ILI9341_Draw_Text(&ili9341, (char *)"ADSR", 5, 150, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-    ILI9341_Draw_Text(&ili9341, (char *)"Filter", 5, 160, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-    ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 170, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-    ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 180, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-    */
-
-    ILI9341_Draw_Horizontal_Line(&ili9341, 80, 140, 230, GUI_FOREGROUND_COLOUR);
-
-    // vTaskDelay(30 / portTICK_PERIOD_MS);
+    vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
 
@@ -73,7 +74,7 @@ void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
 void gui_draw_waveform(int track, int channel, int yPos) {
 
   // Clear waveform if changed
-  ILI9341_Draw_Filled_Rectangle_Coord(&ili9341, 0, 40, 320, 80, GUI_BACKGROUND_COLOUR);
+  ILI9341_Draw_Filled_Rectangle_Coord(&ili9341, 0, 40, 320, 130, GUI_BACKGROUND_COLOUR);
 
   // For x 0->240
   int32_t memory;
