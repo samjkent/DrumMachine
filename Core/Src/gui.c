@@ -14,12 +14,43 @@ void p(UG_S16 x, UG_S16 y, UG_COLOR c) {
 }
 
 void gui_init() {
-    //UG_Init(&gui , p, 320, 240 );
-    // UG_FillScreen(C_BLACK);
+  // Init Display Driver
+  ILI9341_Struct_Reset(&ili9341);
+
+  ili9341.hspi = &hspi2;
+
+  ili9341.cs_gpio_base = GPIOJ;
+  ili9341.cs_gpio_pin = GPIO_PIN_3;
+  
+  ili9341.dc_gpio_base = GPIOJ;
+  ili9341.dc_gpio_pin = GPIO_PIN_4;
+  
+  ili9341.rst_gpio_base = GPIOH;
+  ili9341.rst_gpio_pin = GPIO_PIN_6;
+
+  ili9341.screen_height = 320;
+  ili9341.screen_width = 240;
+  
+  ILI9341_SPI_Init(&ili9341);
+  ILI9341_Init(&ili9341);
+
+  ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
+
+  // UGUI
+    UG_Init(&gui , p, 320, 240 );
+
+    UG_ConsoleSetArea(0,0,320,240);
+    UG_FontSelect( &FONT_12X16 ) ;
+    UG_ConsoleSetBackcolor( C_BLACK ) ;
+    UG_ConsoleSetForecolor( C_WHITE ) ;
+    UG_ConsolePutString("System Initialised \n");
 }
 
 void gui_task(void *p) {
-    // UG_Update();
+  while (1) {
+    UG_Update();
+    vTaskDelay(30 / portTICK_PERIOD_MS);
+  }
 }
 
 /*
