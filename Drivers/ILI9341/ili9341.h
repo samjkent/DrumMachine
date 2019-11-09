@@ -1,79 +1,161 @@
-/* vim: set ai et ts=4 sw=4: */
-#ifndef __ILI9341_H__
-#define __ILI9341_H__
 
-#include "fonts.h"
-#include <stdbool.h>
+//    MIT License
+//
+//    Copyright (c) 2017 Matej Artnak
+//
+//    Permission is hereby granted, free of charge, to any person obtaining a copy
+//    of this software and associated documentation files (the "Software"), to deal
+//    in the Software without restriction, including without limitation the rights
+//    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//    copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//
+//    The above copyright notice and this permission notice shall be included in all
+//    copies or substantial portions of the Software.
+//
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//    SOFTWARE.
+//
+//
+//
+//-----------------------------------
+//    ILI9341 Driver library for STM32
+//-----------------------------------
+//
+//    While there are other libraries for ILI9341 they mostly require either interrupts, DMA or both for fast drawing
+//    The intent of this library is to offer a simple yet still reasonably fast alternatives for those that
+//    do not wish to use interrupts or DMA in their projects.
+//
+//    Library is written for STM32 HAL library and supports STM32CUBEMX. To use the library with Cube software
+//    you need to tick the box that generates peripheral initialization code in their own respective .c and .h file
+//
+//
+//-----------------------------------
+//    Performance
+//-----------------------------------
+//    Settings:
+//    --SPI @ 50MHz
+//    --STM32F746ZG Nucleo board
+//    --Redraw entire screen
+//
+//    ++ Theoretical maximum FPS with 50Mhz SPI calculated to be 40.69 FPS
+//    ++ 320*240 = 76800 pixels, each pixel contains 16bit colour information (2x8)
+//    ++ Theoretical Max FPS: 1/((320*240*16)/50000000)
+//
+//    With ART Accelerator, instruction prefetch, CPI ICACHE and CPU DCACHE enabled:
+//
+//    -FPS:             39.62
+//    -SPI utilization: 97.37%
+//    -MB/Second:       6.09
+//
+//    With ART Accelerator, instruction prefetch, CPI ICACHE and CPU DCACHE disabled:
+//
+//    -FPS:             35.45
+//    -SPI utilization: 87.12%
+//    -MB/Second:       5.44
+//
+//    ART Accelerator, instruction prefetch, CPI ICACHE and CPU DCACHE settings found in MXCUBE under "System->CORTEX M7 button"
+//
+//
+//
+//-----------------------------------
+//    How to use this library
+//-----------------------------------
+//
+// @todo UPDATE
+//
+//-----------------------------------
 
-#define ILI9341_MADCTL_MY  0x80
-#define ILI9341_MADCTL_MX  0x40
-#define ILI9341_MADCTL_MV  0x20
-#define ILI9341_MADCTL_ML  0x10
-#define ILI9341_MADCTL_RGB 0x00
-#define ILI9341_MADCTL_BGR 0x08
-#define ILI9341_MADCTL_MH  0x04
 
-/*** Redefine if necessary ***/
-#define ILI9341_SPI_PORT hspi2
-extern SPI_HandleTypeDef ILI9341_SPI_PORT;
+#ifndef ILI9341_STM32_DRIVER_H
+#define ILI9341_STM32_DRIVER_H
 
-#define ILI9341_RES_Pin       GPIO_PIN_6
-#define ILI9341_RES_GPIO_Port GPIOH
-#define ILI9341_CS_Pin        GPIO_PIN_3
-#define ILI9341_CS_GPIO_Port  GPIOJ
-#define ILI9341_DC_Pin        GPIO_PIN_4
-#define ILI9341_DC_GPIO_Port  GPIOJ
+#include <stdint.h>
 
-// default orientation
-#define ILI9341_WIDTH  240
-#define ILI9341_HEIGHT 320
-#define ILI9341_ROTATION (ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR)
+#include "main.h"
 
-// rotate right
-#define ILI9341_WIDTH  320
-#define ILI9341_HEIGHT 240
-#define ILI9341_ROTATION (ILI9341_MADCTL_MX | ILI9341_MADCTL_MY | ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR)
 
-// rotate left
-/*
-#define ILI9341_WIDTH  320
-#define ILI9341_HEIGHT 240
-#define ILI9341_ROTATION (ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR)
-*/
 
-// upside down
-/*
-#define ILI9341_WIDTH  240
-#define ILI9341_HEIGHT 320
-#define ILI9341_ROTATION (ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR)
-*/
+#define BURST_MAX_SIZE     500
 
-/****************************/
+#define BLACK       0x0000
+#define NAVY        0x000F
+#define DARKGREEN   0x03E0
+#define DARKCYAN    0x03EF
+#define MAROON      0x7800
+#define PURPLE      0x780F
+#define OLIVE       0x7BE0
+#define LIGHTGREY   0xC618
+#define DARKGREY    0x7BEF
+#define BLUE        0x001F
+#define GREEN       0x07E0
+#define CYAN        0x07FF
+#define RED         0xF800
+#define MAGENTA     0xF81F
+#define YELLOW      0xFFE0
+#define WHITE       0xFFFF
+#define ORANGE      0xFD20
+#define GREENYELLOW 0xAFE5
+#define PINK        0xF81F
 
-// Color definitions
-#define	ILI9341_BLACK   0x0000
-#define	ILI9341_BLUE    0x001F
-#define	ILI9341_RED     0xF800
-#define	ILI9341_GREEN   0x07E0
-#define ILI9341_CYAN    0x07FF
-#define ILI9341_MAGENTA 0xF81F
-#define ILI9341_YELLOW  0xFFE0
-#define ILI9341_WHITE   0xFFFF
-#define ILI9341_GREY    0x8888
-#define ILI9341_COLOR565(r, g, b) (((r & 0xF8) << 8) | ((g & 0xFC) << 3) | ((b & 0xF8) >> 3))
+#define SCREEN_VERTICAL_1   0
+#define SCREEN_HORIZONTAL_1 1
+#define SCREEN_VERTICAL_2   2
+#define SCREEN_HORIZONTAL_2 3
 
-// call before initializing any SPI devices
-void ILI9341_Unselect();
 
-void ILI9341_Init(void);
-void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
-void ILI9341_DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color);
-void ILI9341_DrawHLine(uint16_t x, uint16_t y0, uint16_t y1, uint16_t color);
-void ILI9341_DrawVLine(uint16_t y, uint16_t x0, uint16_t x1, uint16_t color);
-void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, uint16_t color, uint16_t bgcolor);
-void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
-void ILI9341_FillScreen(uint16_t color);
-void ILI9341_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t* data);
-void ILI9341_InvertColors(bool invert);
 
-#endif // __ILI9341_H__
+typedef struct
+{
+    SPI_HandleTypeDef* hspi;
+
+    GPIO_TypeDef* cs_gpio_base;
+    uint16_t      cs_gpio_pin;
+
+    GPIO_TypeDef* dc_gpio_base;
+    uint16_t      dc_gpio_pin;
+
+    GPIO_TypeDef* rst_gpio_base;
+    uint16_t      rst_gpio_pin;
+
+    uint16_t      screen_height;
+    uint16_t      screen_width;
+} ILI9341;
+
+//! @brief Initializes ILI9341 to zeroized values.
+//!
+//! @details The intent is to initially set it up this way, then manually populate
+//! the necessary values.
+void ILI9341_Struct_Reset(volatile ILI9341* display);
+
+
+
+//! @brief Sets up GPIO signals for SPI communication.
+//!
+//! @details Initialize the SPI and GPIO separately beforehand via the generated
+//! functions.
+void ILI9341_SPI_Init(volatile ILI9341* display);
+void ILI9341_SPI_Send(volatile ILI9341* display, unsigned char SPI_Data);
+void ILI9341_Write_Command(volatile ILI9341* display, uint8_t Command);
+void ILI9341_Write_Data(volatile ILI9341* display, uint8_t Data);
+void ILI9341_Set_Address(volatile ILI9341* display, uint16_t X1, uint16_t Y1, uint16_t X2, uint16_t Y2);
+void ILI9341_Reset(volatile ILI9341* display);
+void ILI9341_Set_Rotation(volatile ILI9341* display, uint8_t Rotation);
+void ILI9341_Enable(volatile ILI9341* display);
+void ILI9341_Init(volatile ILI9341* display);
+void ILI9341_Fill_Screen(volatile ILI9341* display, uint16_t Colour);
+void ILI9341_Draw_Colour(volatile ILI9341* display, uint16_t Colour);
+void ILI9341_Draw_Pixel(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Colour);
+void ILI9341_Draw_Colour_Burst(volatile ILI9341* display, uint16_t Colour, uint32_t Size);
+
+
+void ILI9341_Draw_Rectangle(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour);
+void ILI9341_Draw_Horizontal_Line(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Colour);
+void ILI9341_Draw_Vertical_Line(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Height, uint16_t Colour);
+
+#endif

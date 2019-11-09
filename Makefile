@@ -48,7 +48,7 @@ Core/Src/MCP23017.c \
 Sequencer/Src/audio_channel.c \
 Sequencer/Src/sample_manager.c \
 Drivers/ILI9341/ili9341.c \
-Drivers/ILI9341/fonts.c \
+Drivers/ILI9341/ili9341_gfx.c \
 Drivers/BSP/Components/wm8994/wm8994.c \
 Core/Src/stm32f7xx_it.c \
 Core/Src/stm32f7xx_hal_msp.c \
@@ -157,7 +157,6 @@ C_INCLUDES =  \
 -IDrivers/LCD \
 -ISequencer/Inc \
 -Ilibs/lib_delay/inc \
--Ilibs/lib_PCF8833/inc \
 -IDrivers/ILI9341 \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \

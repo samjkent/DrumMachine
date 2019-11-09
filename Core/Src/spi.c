@@ -9,6 +9,8 @@
 
 SPI_HandleTypeDef hspi2;
 
+DMA_HandleTypeDef hdma_spi2;
+
 /* SPI2 init function */
 void MX_SPI2_Init(void)
 {
@@ -52,30 +54,66 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     PB14     ------> SPI2_MISO
     PB15     ------> SPI2_MOSI
     */
-    GPIO_InitStruct.Pin = ARD_D13_SCK_Pin;
+
+    // SCK
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-    HAL_GPIO_Init(ARD_D13_SCK_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = SPI2_NSS_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-    HAL_GPIO_Init(SPI2_NSS_GPIO_Port, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = ARDUINO_MISO_D12_Pin|ARDUINO_MOSI_PWM_D11_Pin;
+    // MOSI
+    GPIO_InitStruct.Pin = GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ 
+    // CS 
+    GPIO_InitStruct.Pin = GPIO_PIN_3;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
+  
+    // Reset
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
+    
+    // DC
+    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // digital Output
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    HAL_GPIO_Init(GPIOJ, &GPIO_InitStruct);
+  
 
-  /* USER CODE BEGIN SPI2_MspInit 1 */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  hdma_spi2.Instance = DMA1_Stream4;
+  hdma_spi2.State = HAL_DMA_STATE_READY;
+  hdma_spi2.Init.Channel = DMA_CHANNEL_0;
+  hdma_spi2.Init.Direction = DMA_MEMORY_TO_PERIPH;
+  hdma_spi2.Init.PeriphInc = DMA_PINC_DISABLE;
+  hdma_spi2.Init.MemInc = DMA_MINC_ENABLE;
+  hdma_spi2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  hdma_spi2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_spi2.Init.Mode = DMA_NORMAL;
+  hdma_spi2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+  if (HAL_DMA_Init(&hdma_spi2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
 
-  /* USER CODE END SPI2_MspInit 1 */
+  __HAL_LINKDMA(&hspi2,hdmatx,hdma_spi2);
+  
+  HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
   }
 }
 
