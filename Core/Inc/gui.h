@@ -4,6 +4,8 @@
 #define GUI_BACKGROUND_COLOUR BLACK
 #define GUI_FOREGROUND_COLOUR WHITE
 
+void gui_init();
+
 void gui_task(void *p);
 
 void gui_draw_ticks(int fs, int div, int size, int windowSize, int x, int yPos);
