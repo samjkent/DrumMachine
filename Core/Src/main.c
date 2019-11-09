@@ -231,6 +231,8 @@ int main(void) {
   if (HAL_OK != retVal)
     Error_Handler();
 
+  gui_init();
+
   xTaskCreate(blinky, (char *)"blinky", 256, NULL, 8, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);

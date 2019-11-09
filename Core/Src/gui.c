@@ -1,12 +1,28 @@
 #include "gui.h"
 #include "spi.h"
 #include "ili9341_gfx.h"
+#include "ugui.h"
 #include "audio_channel.h"
 
 extern int sequencer_channel;
 
+UG_GUI gui;
 ILI9341 ili9341;
 
+void p(UG_S16 x, UG_S16 y, UG_COLOR c) {
+      ILI9341_Draw_Pixel(&ili9341, x, y, c);
+}
+
+void gui_init() {
+    //UG_Init(&gui , p, 320, 240 );
+    // UG_FillScreen(C_BLACK);
+}
+
+void gui_task(void *p) {
+    // UG_Update();
+}
+
+/*
 void gui_task(void *p) {
   // Init screen
   ILI9341_Struct_Reset(&ili9341);
@@ -46,12 +62,6 @@ void gui_task(void *p) {
         gui_draw_waveform(sequencer_channel, 0, 80);
 
         ILI9341_Draw_Text(&ili9341, (char *)"Sample", 5, 140, GUI_FOREGROUND_COLOUR, 2, GUI_BACKGROUND_COLOUR);
-        /*
-        ILI9341_Draw_Text(&ili9341, (char *)"ADSR", 5, 150, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-        ILI9341_Draw_Text(&ili9341, (char *)"Filter", 5, 160, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-        ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 170, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-        ILI9341_Draw_Text(&ili9341, (char *)"FX", 5, 180, GUI_FOREGROUND_COLOUR, 1, GUI_BACKGROUND_COLOUR);
-        */
 
         ILI9341_Draw_Horizontal_Line(&ili9341, 80, 140, 230, GUI_FOREGROUND_COLOUR);
 
@@ -60,6 +70,7 @@ void gui_task(void *p) {
     vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
+*/
 
 void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
                     int yPos) {
