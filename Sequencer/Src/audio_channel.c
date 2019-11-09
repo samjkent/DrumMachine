@@ -1,5 +1,7 @@
 #include "audio_channel.h"
 
+uint8_t sequencer_channel = 0;
+
 void sequencer_step()
 {
   step = (step + 1) % 16;

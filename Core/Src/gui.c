@@ -1,15 +1,87 @@
 #include "gui.h"
+#include "spi.h"
+#include "ili9341_gfx.h"
+#include "ugui.h"
 #include "audio_channel.h"
 
 extern int sequencer_channel;
 
+UG_GUI gui;
+ILI9341 ili9341;
+
+void p(UG_S16 x, UG_S16 y, UG_COLOR c) {
+      ILI9341_Draw_Pixel(&ili9341, x, y, c);
+}
+
+void gui_init() {
+  // Init Display Driver
+  ILI9341_Struct_Reset(&ili9341);
+
+  ili9341.hspi = &hspi2;
+
+  ili9341.cs_gpio_base = GPIOJ;
+  ili9341.cs_gpio_pin = GPIO_PIN_3;
+  
+  ili9341.dc_gpio_base = GPIOJ;
+  ili9341.dc_gpio_pin = GPIO_PIN_4;
+  
+  ili9341.rst_gpio_base = GPIOH;
+  ili9341.rst_gpio_pin = GPIO_PIN_6;
+
+  ili9341.screen_height = 320;
+  ili9341.screen_width = 240;
+  
+  ILI9341_SPI_Init(&ili9341);
+  ILI9341_Init(&ili9341);
+
+  ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
+
+  // UGUI
+    UG_Init(&gui , p, 320, 240 );
+
+    UG_ConsoleSetArea(0,0,320,240);
+    UG_FontSelect( &FONT_12X16 ) ;
+    UG_ConsoleSetBackcolor( C_BLACK ) ;
+    UG_ConsoleSetForecolor( C_WHITE ) ;
+    UG_ConsolePutString("System Initialised \n");
+}
+
 void gui_task(void *p) {
+  while (1) {
+    UG_Update();
+    vTaskDelay(30 / portTICK_PERIOD_MS);
+  }
+}
+
+/*
+void gui_task(void *p) {
+  // Init screen
+  ILI9341_Struct_Reset(&ili9341);
+
+  ili9341.hspi = &hspi2;
+
+  ili9341.cs_gpio_base = GPIOJ;
+  ili9341.cs_gpio_pin = GPIO_PIN_3;
+  
+  ili9341.dc_gpio_base = GPIOJ;
+  ili9341.dc_gpio_pin = GPIO_PIN_4;
+  
+  ili9341.rst_gpio_base = GPIOH;
+  ili9341.rst_gpio_pin = GPIO_PIN_6;
+
+  ili9341.screen_height = 320;
+  ili9341.screen_width = 240;
+  
+  ILI9341_SPI_Init(&ili9341);
+  ILI9341_Init(&ili9341);
+
+  ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
 
   int previous_sequencer_channel = -1;
-  ILI9341_FillScreen(GUI_BACKGROUND_COLOUR);
+
+  ILI9341_Fill_Screen(&ili9341, BLACK);
 
   while (1) {
-
     // Check if update is required
     if(previous_sequencer_channel != sequencer_channel) {
         // Set previous_sequencer_channel
@@ -17,47 +89,19 @@ void gui_task(void *p) {
 
         // Update sample information
         char channel = sequencer_channel + '0';
-        ILI9341_WriteString(5, 5, &channel, Font_11x18, GUI_FOREGROUND_COLOUR,
-                            GUI_BACKGROUND_COLOUR);
-
+        ILI9341_Draw_Text(&ili9341, &channel, 5, 5, GUI_FOREGROUND_COLOUR, 5, GUI_BACKGROUND_COLOUR);
         gui_draw_waveform(sequencer_channel, 0, 80);
+
+        ILI9341_Draw_Text(&ili9341, (char *)"Sample", 5, 140, GUI_FOREGROUND_COLOUR, 2, GUI_BACKGROUND_COLOUR);
+
+        ILI9341_Draw_Horizontal_Line(&ili9341, 80, 140, 230, GUI_FOREGROUND_COLOUR);
+
     }
-
-    ILI9341_WriteString(5, 140, (char *)"Sample", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(5, 150, (char *)"ADSR", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(5, 165, (char *)"Filter", Font_11x18,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10, GUI_FOREGROUND_COLOUR,
-                        GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(5, 190, (char *)"FX", Font_7x10, GUI_FOREGROUND_COLOUR,
-                        GUI_BACKGROUND_COLOUR);
-
-    ILI9341_DrawHLine(80, 140, 230, GUI_FOREGROUND_COLOUR);
-
-    // Fake filter env
-    for (int x = 0; x < 20; x++) {
-      ILI9341_DrawPixel(100 + x, 180.0 - (2 * x), GUI_FOREGROUND_COLOUR);
-    }
-    for (int x = 0; x < 40; x++) {
-      ILI9341_DrawPixel(120 + x, 140, GUI_FOREGROUND_COLOUR);
-    }
-
-    ILI9341_WriteString(170, 140, (char *)"Cut Off: 20 Hz", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(170, 150, (char *)"Resonance: 0%", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(170, 160, (char *)"LFO Amount: 20%", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(170, 170, (char *)"LFO Freq: 1/6", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
-    ILI9341_WriteString(170, 180, (char *)"Type: High Pass", Font_7x10,
-                        GUI_FOREGROUND_COLOUR, GUI_BACKGROUND_COLOUR);
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
+*/
 
 void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
                     int yPos) {
@@ -65,14 +109,14 @@ void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
   int curr = ((x)*windowSize) % (fs / div);
   if (next < curr) {
     for (int16_t y = -size; y <= size; y++)
-      ILI9341_DrawPixel(x, yPos + y, ILI9341_BLUE);
+      ILI9341_Draw_Pixel(&ili9341, x, yPos + y, BLUE);
   }
 }
 
 void gui_draw_waveform(int track, int channel, int yPos) {
 
   // Clear waveform if changed
-  ILI9341_FillRectangle(0, 40, ILI9341_WIDTH, 80, GUI_BACKGROUND_COLOUR);
+  ILI9341_Draw_Filled_Rectangle_Coord(&ili9341, 0, 40, 320, 130, GUI_BACKGROUND_COLOUR);
 
   // For x 0->240
   int32_t memory;
@@ -112,21 +156,21 @@ void gui_draw_waveform(int track, int channel, int yPos) {
     // This provides a better overview of the window
     if (windowSize > 200) {
       for (int16_t y = min; y <= max; y++)
-        ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_YELLOW);
+        ILI9341_Draw_Pixel(&ili9341, x + 10, yPos + y, YELLOW);
     } else {
 
       // Draw wave
       if (prevSample < sample) {
         for (int16_t y = prevSample; y <= sample; y++)
-          ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_GREEN);
+          ILI9341_Draw_Pixel(&ili9341, x + 10, yPos + y, GREEN);
       } else {
         for (int16_t y = prevSample; y >= sample; y--)
-          ILI9341_DrawPixel(x + 10, yPos + y, ILI9341_GREEN);
+          ILI9341_Draw_Pixel(&ili9341, x + 10, yPos + y, GREEN);
       }
     }
 
     // Draw zero
-    ILI9341_DrawPixel(x + 10, yPos, ILI9341_BLUE);
+    ILI9341_Draw_Pixel(&ili9341, x + 10, yPos, BLUE);
 
     // Draw .1 sec marker
     gui_draw_ticks(44100, 10, 2, windowSize, x, yPos);

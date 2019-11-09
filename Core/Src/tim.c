@@ -65,9 +65,9 @@ void MX_TIM8_Init(void)
   TIM_OC_InitTypeDef sConfigOC;
 
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 3;
+  htim8.Init.Prescaler = 14;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim8.Init.Period = 19;
+  htim8.Init.Period = 40;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   if (HAL_TIM_PWM_Init(&htim8) != HAL_OK)
   {

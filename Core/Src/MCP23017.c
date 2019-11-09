@@ -1,7 +1,7 @@
 // Copyright (c) 2018 Rudá Moura <ruda.moura@gmail.com>
 // License: The MIT License (MIT)
 
-#include "mcp23017.h"
+#include "MCP23017.h"
 #include "gpio.h"
 
 // Registers
