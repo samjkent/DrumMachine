@@ -349,3 +349,8 @@ void _Error_Handler(char *file, int line) {
   }
 }
 
+int _write(int file, char* data, int len)
+{
+    HAL_StatusTypeDef status = HAL_UART_Transmit(&huart1, data, len, 0xFFFF);
+    return (status == HAL_OK ? len : 0);
+}
