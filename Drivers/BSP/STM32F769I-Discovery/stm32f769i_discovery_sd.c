@@ -158,7 +158,7 @@ uint8_t BSP_SD_Init(void)
     uSdHandle.Init.ClockPowerSave      = SDMMC_CLOCK_POWER_SAVE_DISABLE;
     uSdHandle.Init.BusWide             = SDMMC_BUS_WIDE_1B;
     uSdHandle.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-    uSdHandle.Init.ClockDiv            = SDMMC_TRANSFER_CLK_DIV;
+    uSdHandle.Init.ClockDiv            = SDMMC_INIT_CLK_DIV;
 
   /* Msp SD Detect pin initialization */
   BSP_SD_Detect_MspInit(&uSdHandle, NULL);
@@ -179,7 +179,7 @@ uint8_t BSP_SD_Init(void)
   /* Configure SD Bus width */
   if(sd_state == MSD_OK)
   {
-    /* Enable wide operation */
+    /* Enable wide operation
     if(HAL_SD_ConfigWideBusOperation(&uSdHandle, SDMMC_BUS_WIDE_4B) != HAL_OK)
     {
       sd_state = MSD_ERROR;
@@ -188,6 +188,7 @@ uint8_t BSP_SD_Init(void)
     {
       sd_state = MSD_OK;
     }
+    */
   }
   return  sd_state;
 }
@@ -249,6 +250,9 @@ uint8_t BSP_SD_IsDetected(void)
   if (HAL_GPIO_ReadPin(SD_DETECT_GPIO_PORT, SD_DETECT_PIN) == GPIO_PIN_SET)
   {
     status = SD_NOT_PRESENT;
+    printf("SD Card Not Found \r\n");
+  } else {
+    printf("SD Card Detected \r\n");
   }
 
     return status;
@@ -266,10 +270,12 @@ uint8_t BSP_SD_ReadBlocks(uint32_t *pData, uint32_t ReadAddr, uint32_t NumOfBloc
 {
   if(HAL_SD_ReadBlocks(&uSdHandle, (uint8_t *)pData, ReadAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
+    printf("RF %#5x %2d (%08lX)\n", ReadAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_ERROR;
   }
   else
   {
+    printf("R %5x %2d (%08lX)\n", ReadAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_OK;
   }
 }
@@ -286,10 +292,12 @@ uint8_t BSP_SD_WriteBlocks(uint32_t *pData, uint32_t WriteAddr, uint32_t NumOfBl
 {
   if(HAL_SD_WriteBlocks(&uSdHandle, (uint8_t *)pData, WriteAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
+    printf("WF %5d %2ld (%08lX)\n", WriteAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_ERROR;
   }
   else
   {
+    printf("W %5d %2ld (%08lX)\n", WriteAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_OK;
   }
 }
@@ -414,13 +422,13 @@ __weak void BSP_SD_MspInit(SD_HandleTypeDef *hsd, void *Params)
   dma_rx_handle.Instance = SD_DMAx_Rx_STREAM;
 
   /* Associate the DMA handle */
-  __HAL_LINKDMA(hsd, hdmarx, dma_rx_handle);
+  // __HAL_LINKDMA(hsd, hdmarx, dma_rx_handle);
 
   /* Deinitialize the stream for new transfer */
-  HAL_DMA_DeInit(&dma_rx_handle);
+  // HAL_DMA_DeInit(&dma_rx_handle);
 
   /* Configure the DMA stream */
-  HAL_DMA_Init(&dma_rx_handle);
+  // HAL_DMA_Init(&dma_rx_handle);
 
   /* Configure DMA Tx parameters */
   dma_tx_handle.Init.Channel             = SD_DMAx_Tx_CHANNEL;
@@ -571,7 +579,7 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd)
   */
 __weak void BSP_SD_AbortCallback(void)
 {
-
+ printf("Abort Callback \r\n");
 }
 
 /**
@@ -580,7 +588,7 @@ __weak void BSP_SD_AbortCallback(void)
   */
 __weak void BSP_SD_WriteCpltCallback(void)
 {
-
+ printf("TxCpltCallback \r\n");
 }
 
 /**
@@ -589,7 +597,7 @@ __weak void BSP_SD_WriteCpltCallback(void)
   */
 __weak void BSP_SD_ReadCpltCallback(void)
 {
-
+ printf("ReadCpltCallback \r\n");
 }
 
 /**

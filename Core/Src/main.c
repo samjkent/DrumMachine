@@ -14,6 +14,9 @@
 #include "rtc.h"
 #include "sample_manager.h"
 #include "sai.h"
+#include "sdmmc.h"
+#include "ff_gen_drv.h"
+#include "ff.h"
 #include "spdifrx.h"
 #include "spi.h"
 #include "stm32f7xx_hal.h"
@@ -25,12 +28,19 @@
 #include "gui.h"
 #include <math.h>
 
+#include "stm32f769i_discovery_sd.h"
+
 /* Private variables ---------------------------------------------------------*/
 #define PLAY_BUFF_SIZE 256
 
 #define ADC_BUFF_SIZE 30 
 
 #define NUM_OF_CHANNELS 8
+
+FATFS SDFatFs;
+FIL file;
+extern Diskio_drvTypeDef SD_Driver;
+char SDPath[4];
 
 AUDIO_DrvTypeDef *audio_drv;
 
@@ -89,12 +99,11 @@ void WM8894_Init() {
 
 void blinky(void *p) {
   // General task thread
+
+  attempt_fmount();
+  //format_disk();
+  
   while (1) {
-
-    char send[80];
-    int len = sprintf(&send, "ADC values: %d %d %d %d %d %d\r\n", ADCBuffer_1[0]/41, ADCBuffer_1[1]/41, ADCBuffer_1[2]/41, ADCBuffer_3[0]/41, ADCBuffer_3[1]/41, ADCBuffer_3[2]/41);
-    HAL_UART_Transmit(&huart1, &send, len, HAL_MAX_DELAY);
-
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
@@ -184,6 +193,74 @@ void Delay(int counter) {
     ;
 }
 
+void format_disk() {
+    FIL fil;            /* File object */
+    FRESULT res;        /* API result code */
+    UINT bw;            /* Bytes written */
+    BYTE work[_MAX_SS]; /* Work area (larger is better for processing time) */
+
+    /* Format the default drive with default parameters */
+    res = f_mkfs("", 0, 0, work, sizeof work);
+    if (res) {
+        printf("mkfs failed %d \r\n", res);
+    }
+
+    /* Gives a work area to the default drive */
+    f_mount(&SDFatFs, "", 0);
+
+    SD_status();
+
+    /* Create a file as new */
+    res = f_open(&fil, "hello.txt", FA_CREATE_NEW | FA_WRITE);
+    if (res) {
+        printf("open error\r\n");
+    }
+
+    /* Write a message */
+    f_write(&fil, "Hello, World!\r\n", 15, &bw);
+    if (bw != 15) {
+        printf("failed writing\r\n");
+    }
+
+    /* Close the file */
+    f_close(&fil);
+
+    /* Unregister work area */
+    f_mount(0, "", 0);
+}
+
+void attempt_fmount() {
+
+    FRESULT retSD;
+
+    printf("attempt fmount\r\n"); 
+    retSD = f_mount(&SDFatFs, SDPath, 1);
+
+    HAL_SD_CardInfoTypeDef card_info;
+    BSP_SD_GetCardInfo(&card_info);
+
+    printf("CARD INFO \r\n");
+    printf("CardType: %#x \r\n", card_info.CardType);
+    printf("CardVersion: %#x \r\n", card_info.CardVersion);
+    printf("Class: %#x \r\n", card_info.Class);
+    printf("RelCardAdd: %#x \r\n", card_info.RelCardAdd);
+    printf("BlockNbr: %#x \r\n", card_info.BlockNbr);
+    printf("BlockSize: %#x \r\n", card_info.BlockSize);
+    printf("LogBlockNbr: %#x \r\n", card_info.LogBlockNbr);
+    printf("LogBlockSize: %#x \r\n", card_info.LogBlockSize);
+
+    if(retSD == 0) {
+        printf("mounted\r\n"); 
+        retSD = f_open (
+            &file,
+            "test.txt",
+            FA_CREATE_ALWAYS
+        );
+        printf("open result %d \r\n", retSD);
+    } else {
+        printf("f_mount failed %d \r\n", retSD); 
+    }
+}
 
 int main(void) {
   HAL_Init();
@@ -194,13 +271,17 @@ int main(void) {
 
   MX_GPIO_Init();
   MX_SPI2_Init();
+  MX_USART1_UART_Init();
 
   MX_I2C1_Init();
 
   MX_DMA_Init();
   buttons_init();
 
-  MX_USART1_UART_Init();
+  uint8_t ret;
+  ret = FATFS_LinkDriver(&SD_Driver, SDPath);
+  printf("FATFS_LinkDriver() returns %d \r\n", ret);
+
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
   WM8894_Init();
@@ -295,7 +376,7 @@ void SystemClock_Config(void) {
   PeriphClkInitStruct.PeriphClockSelection =
       RCC_PERIPHCLK_SPDIFRX | RCC_PERIPHCLK_RTC | RCC_PERIPHCLK_USART1 |
       RCC_PERIPHCLK_USART6 | RCC_PERIPHCLK_UART5 | RCC_PERIPHCLK_I2C1 |
-      RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SDMMC2;
+      RCC_PERIPHCLK_I2C4 | RCC_PERIPHCLK_SDMMC2 | RCC_PERIPHCLK_CLK48;
   PeriphClkInitStruct.PLLI2S.PLLI2SN = 192;
   PeriphClkInitStruct.PLLI2S.PLLI2SP = RCC_PLLP_DIV4;
   PeriphClkInitStruct.PLLI2S.PLLI2SR = 2;
@@ -307,7 +388,8 @@ void SystemClock_Config(void) {
   PeriphClkInitStruct.Usart6ClockSelection = RCC_USART6CLKSOURCE_PCLK2;
   PeriphClkInitStruct.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInitStruct.I2c4ClockSelection = RCC_I2C4CLKSOURCE_PCLK1;
-  PeriphClkInitStruct.Sdmmc2ClockSelection = RCC_SDMMC2CLKSOURCE_SYSCLK;
+  PeriphClkInitStruct.Clk48ClockSelection = RCC_CLK48SOURCE_PLL;
+  PeriphClkInitStruct.Sdmmc2ClockSelection = RCC_SDMMC2CLKSOURCE_CLK48;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
     _Error_Handler(__FILE__, __LINE__);
   }

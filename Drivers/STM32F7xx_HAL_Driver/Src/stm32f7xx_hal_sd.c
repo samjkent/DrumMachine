@@ -385,9 +385,11 @@ HAL_StatusTypeDef HAL_SD_InitCard(SD_HandleTypeDef *hsd)
   }
 
   /* Card initialization */
+  printf("Init card \r\n");
   errorstate = SD_InitCard(hsd);
   if(errorstate != HAL_SD_ERROR_NONE)
   {
+    printf("Init card error: %d \r\n", errorstate);
     hsd->State = HAL_SD_STATE_READY;
     hsd->ErrorCode |= errorstate;
     return HAL_ERROR;
@@ -653,6 +655,7 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
     
     hsd->State = HAL_SD_STATE_READY;
     
+    printf("read ok \r\n"); 
     return HAL_OK;
   }
   else

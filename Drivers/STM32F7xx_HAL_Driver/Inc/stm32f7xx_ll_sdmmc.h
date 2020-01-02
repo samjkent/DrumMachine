@@ -659,7 +659,7 @@ typedef struct
 #define SDMMC_INIT_CLK_DIV     ((uint8_t)0x76)
 
 /* SDMMC Data Transfer Frequency (25MHz max) */
-#define SDMMC_TRANSFER_CLK_DIV ((uint8_t)0x0)
+#define SDMMC_TRANSFER_CLK_DIV ((uint8_t)0xA)
 
 /**
   * @}

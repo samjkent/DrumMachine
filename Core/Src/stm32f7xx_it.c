@@ -22,6 +22,8 @@ extern DMA_HandleTypeDef hdma_adc3;
 extern SPI_HandleTypeDef spi2;
 extern DMA_HandleTypeDef hdma_spi2;
 
+extern SD_HandleTypeDef uSdHandle;
+
 /******************************************************************************/
 /*            Cortex-M7 Processor Interruption and Exception Handlers         */
 /******************************************************************************/
@@ -120,7 +122,7 @@ void EXTI9_5_IRQHandler(void) {
     
 }
 
-void DMA2_Stream0_IRQHandler(void)
+void DMA2_Stream4_IRQHandler(void)
 {
    HAL_DMA_IRQHandler(&hdma_adc1);
 }
@@ -135,6 +137,15 @@ void DMA1_Stream4_IRQHandler(void)
     HAL_DMA_IRQHandler(&hdma_spi2);
 }
 
+void DMA2_Stream5_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&uSdHandle.hdmatx);
+}
+
+void DMA2_Stream0_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&uSdHandle.hdmarx);
+}
 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
