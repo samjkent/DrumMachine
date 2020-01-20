@@ -888,6 +888,7 @@ FRESULT sync_window (	/* Returns FR_OK or FR_DISK_ERROR */
 	UINT nf;
 	FRESULT res = FR_OK;
 
+
 	if (fs->wflag) {	/* Write back the sector if it is dirty */
 		wsect = fs->winsect;	/* Current sector number */
 		if (disk_write(fs->drv, fs->win, wsect, 1) != RES_OK) {
@@ -2968,9 +2969,6 @@ BYTE check_fs (	/* 0:FAT, 1:exFAT, 2:Valid BS but not FAT, 3:Not a BS, 4:Disk er
 {
 	fs->wflag = 0; fs->winsect = 0xFFFFFFFF;		/* Invaidate window */
 	if (move_window(fs, sect) != FR_OK) return 4;	/* Load boot record */
-        
-    printf("fs->win: %#x \r\n", ld_word(fs->win) + BS_55AA);
-
 	if (ld_word(fs->win + BS_55AA) != 0xAA55) return 3;	/* Check boot record signature (always placed here even if the sector size is >512) */
 
 	if (fs->win[BS_JmpBoot] == 0xE9 || (fs->win[BS_JmpBoot] == 0xEB && fs->win[BS_JmpBoot + 2] == 0x90)) {
@@ -2980,6 +2978,7 @@ BYTE check_fs (	/* 0:FAT, 1:exFAT, 2:Valid BS but not FAT, 3:Not a BS, 4:Disk er
 #if _FS_EXFAT
 	if (!mem_cmp(fs->win + BS_JmpBoot, "\xEB\x76\x90" "EXFAT   ", 11)) return 1;
 #endif
+
 	return 2;
 }
 
@@ -3064,7 +3063,6 @@ FRESULT find_volume (	/* FR_OK(0): successful, !=0: any error occurred */
 	}
 	if (fmt == 4) return FR_DISK_ERR;		/* An error occured in the disk I/O layer */
 	if (fmt >= 2) return FR_NO_FILESYSTEM;	/* No FAT volume is found */
-
 	/* An FAT volume is found (bsect). Following code initializes the file system object */
 
 #if _FS_EXFAT
@@ -3220,16 +3218,27 @@ FRESULT validate (	/* Returns FR_OK or FR_INVALID_OBJECT */
 	FATFS** fs		/* Pointer to pointer to the owner file system object to return */
 )
 {
-	FRESULT res;
+	FRESULT res = FR_INVALID_OBJECT;
 
-	if (!obj || !obj->fs || !obj->fs->fs_type || obj->fs->id != obj->id || (disk_status(obj->fs->drv) & STA_NOINIT)) {
-		*fs = 0;
-		res = FR_INVALID_OBJECT;	/* The object is invalid */
-	} else {
-		*fs = obj->fs;			/* Owner file sytem object */
-		ENTER_FF(obj->fs);		/* Lock file system */
-		res = FR_OK;			/* Valid object */
+
+	if (obj && obj->fs && obj->fs->fs_type && obj->id == obj->fs->id) {	/* Test if the object is valid */
+#if _FS_REENTRANT
+		if (lock_fs(obj->fs)) {	/* Obtain the filesystem object */
+			if (!(disk_status(obj->fs->drv) & STA_NOINIT)) { /* Test if the phsical drive is kept initialized */
+				res = FR_OK;
+			} else {
+				unlock_fs(obj->fs, FR_OK);
+			}
+		} else {
+			res = FR_TIMEOUT;
+		}
+#else
+		if (!(disk_status(obj->fs->drv) & STA_NOINIT)) { /* Test if the phsical drive is kept initialized */
+			res = FR_OK;
+		}
+#endif
 	}
+	*fs = (res == FR_OK) ? obj->fs : 0;	/* Corresponding filesystem object */
 	return res;
 }
 

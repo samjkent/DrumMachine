@@ -46,7 +46,6 @@
    /* Configure the uSD device */
    if(BSP_SD_Init() == MSD_OK)
    {
-     printf("BSP_SD_Init OK \r\n");
      Stat &= ~STA_NOINIT;
    }
  
@@ -79,12 +78,6 @@
 
    while(SD_status(0) != SD_TRANSFER_OK);
 
-   printf("read from sector %#x \r\n", sector * BLOCK_SIZE) ;
-   for(int i = 0; i < count; i++) {
-    printf("%x", buff);
-   }
-   printf("\r\n");
-
    return res;
  }
  
@@ -102,12 +95,6 @@
 
    while(SD_status(0) != SD_TRANSFER_OK);
 
-   printf("write ");
-   for(int i = 0; i < count; i++) {
-    printf("%x", buff);
-   }
-   printf("\r\n");
-
    return res;
  }
  
@@ -118,7 +105,6 @@
    
    if (Stat & STA_NOINIT) return RES_NOTRDY;
     
-   printf("block size: %d , ioctl cmd %d \r\n", BLOCK_SIZE, cmd); 
    switch (cmd)
    {
    /* Make sure that no pending write process */
@@ -136,14 +122,12 @@
    
    /* Get R/W sector size (WORD) */
    case GET_SECTOR_SIZE :
-     printf("GET_SECTOR_SIZE \r\n"); 
      *(WORD*)buff = BLOCK_SIZE;
      res = RES_OK;
      break;
    
    /* Get erase block size in unit of sector (DWORD) */
    case GET_BLOCK_SIZE :
-     printf("GET_BLOCK_SIZE \r\n"); 
      *(DWORD*)buff = BLOCK_SIZE;
      res = RES_OK;
      break;
@@ -152,7 +136,6 @@
      res = RES_PARERR;
    }
    
-   printf("ioctl res %d \r\n", res); 
    
    return res;
  }

@@ -270,12 +270,10 @@ uint8_t BSP_SD_ReadBlocks(uint32_t *pData, uint32_t ReadAddr, uint32_t NumOfBloc
 {
   if(HAL_SD_ReadBlocks(&uSdHandle, (uint8_t *)pData, ReadAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
-    printf("RF %#5x %2d (%08lX)\n", ReadAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_ERROR;
   }
   else
   {
-    printf("R %5x %2d (%08lX)\n", ReadAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_OK;
   }
 }
@@ -292,12 +290,10 @@ uint8_t BSP_SD_WriteBlocks(uint32_t *pData, uint32_t WriteAddr, uint32_t NumOfBl
 {
   if(HAL_SD_WriteBlocks(&uSdHandle, (uint8_t *)pData, WriteAddr, NumOfBlocks, Timeout) != HAL_OK)
   {
-    printf("WF %5d %2ld (%08lX)\n", WriteAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_ERROR;
   }
   else
   {
-    printf("W %5d %2ld (%08lX)\n", WriteAddr, NumOfBlocks, uSdHandle.ErrorCode);
     return MSD_OK;
   }
 }

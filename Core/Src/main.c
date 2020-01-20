@@ -91,7 +91,7 @@ void WM8894_Init() {
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 100,
+  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50,
                            AUDIO_FREQUENCY_22K)) {
     Error_Handler();
   }
@@ -99,10 +99,6 @@ void WM8894_Init() {
 
 void blinky(void *p) {
   // General task thread
-
-  attempt_fmount();
-  //format_disk();
-  
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
@@ -199,27 +195,25 @@ void format_disk() {
     UINT bw;            /* Bytes written */
     BYTE work[_MAX_SS]; /* Work area (larger is better for processing time) */
 
+    printf("start format \r\n");
     /* Format the default drive with default parameters */
-    res = f_mkfs("", 0, 0, work, sizeof work);
+    res = f_mkfs("", FM_ANY, 0, work, sizeof work);
     if (res) {
-        printf("mkfs failed %d \r\n", res);
+        printf("work %d mkfs failed %d \r\n", _MAX_SS, res);
     }
+    printf("format successful \r\n");
 
     /* Gives a work area to the default drive */
-    f_mount(&SDFatFs, "", 0);
+    res = f_mount(&SDFatFs, "0:/", 1);
+    printf("fmount res %d \r\n", res);
 
     SD_status();
 
     /* Create a file as new */
-    res = f_open(&fil, "hello.txt", FA_CREATE_NEW | FA_WRITE);
+    res = f_open(&fil, "0:/hello.txt", FA_OPEN_ALWAYS
+                    | FA_WRITE);
     if (res) {
         printf("open error\r\n");
-    }
-
-    /* Write a message */
-    f_write(&fil, "Hello, World!\r\n", 15, &bw);
-    if (bw != 15) {
-        printf("failed writing\r\n");
     }
 
     /* Close the file */
@@ -230,8 +224,9 @@ void format_disk() {
 }
 
 void attempt_fmount() {
-
     FRESULT retSD;
+    FIL fil;            /* File object */
+    UINT br, bw;         /* File read/write count */
 
     printf("attempt fmount\r\n"); 
     retSD = f_mount(&SDFatFs, SDPath, 1);
@@ -239,27 +234,43 @@ void attempt_fmount() {
     HAL_SD_CardInfoTypeDef card_info;
     BSP_SD_GetCardInfo(&card_info);
 
-    printf("CARD INFO \r\n");
-    printf("CardType: %#x \r\n", card_info.CardType);
-    printf("CardVersion: %#x \r\n", card_info.CardVersion);
-    printf("Class: %#x \r\n", card_info.Class);
-    printf("RelCardAdd: %#x \r\n", card_info.RelCardAdd);
-    printf("BlockNbr: %#x \r\n", card_info.BlockNbr);
-    printf("BlockSize: %#x \r\n", card_info.BlockSize);
-    printf("LogBlockNbr: %#x \r\n", card_info.LogBlockNbr);
-    printf("LogBlockSize: %#x \r\n", card_info.LogBlockSize);
-
     if(retSD == 0) {
         printf("mounted\r\n"); 
         retSD = f_open (
-            &file,
+            &fil,
             "test.txt",
-            FA_CREATE_ALWAYS
+            FA_OPEN_APPEND | FA_WRITE | FA_READ
         );
         printf("open result %d \r\n", retSD);
     } else {
         printf("f_mount failed %d \r\n", retSD); 
     }
+
+    /* Write a message */
+    printf("write \r\n");
+    f_lseek(&fil, 0);
+    retSD = f_lseek(&fil, f_size(&fil));
+    char test[] = "Hello world! \r\nFatFS test \r\n"; 
+    retSD = f_write(&fil, &test, sizeof test, &bw);
+    if (bw != (sizeof test)) {
+        printf("failed writing %d\r\n", bw);
+        printf("error: %d \r\n", retSD); 
+    }
+
+
+    printf("print file: \r\n");
+    f_lseek(&fil, 0);
+    char line[100]; /* Line buffer */
+    /* Read every line and display it */
+    while (f_gets(line, sizeof line, &fil)) {
+        printf(line);
+    }
+    printf("finished reading \r\n");
+    /* Close the file */
+    f_close(&fil);
+
+    /* Unregister work area */
+    f_mount(0, "", 0);
 }
 
 int main(void) {
@@ -277,10 +288,6 @@ int main(void) {
 
   MX_DMA_Init();
   buttons_init();
-
-  uint8_t ret;
-  ret = FATFS_LinkDriver(&SD_Driver, SDPath);
-  printf("FATFS_LinkDriver() returns %d \r\n", ret);
 
   MX_SAI2_Init();
   HAL_SAI_MspInit(&SaiHandle);
@@ -313,6 +320,14 @@ int main(void) {
     Error_Handler();
 
   gui_init();
+
+    uint8_t ret;
+    sprintf(&SDPath, "0:/");
+    ret = FATFS_LinkDriver(&SD_Driver, SDPath);
+    printf("FATFS_LinkDriver() returns %d \r\n", ret);
+
+  //format_disk();
+  attempt_fmount();
 
   xTaskCreate(blinky, (char *)"blinky", 256, NULL, 8, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
