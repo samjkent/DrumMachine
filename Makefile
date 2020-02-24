@@ -170,7 +170,7 @@ C_INCLUDES =  \
 -IDrivers/ILI9341 \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \
--IMiddlewares/Third_Party/FATFS/src \
+-IMiddlewares/Third_Party/FatFs/src \
 -IMiddlewares/Third_Party/UGUI \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
 -IDrivers/CMSIS/Device/ST/STM32F7xx/Include \
