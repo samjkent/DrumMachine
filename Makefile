@@ -37,6 +37,8 @@ Core/Src/quadspi.c \
 Core/Src/rtc.c \
 Core/Src/sai.c \
 Core/Src/sdmmc.c \
+Core/Src/sd_diskio.c \
+Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sd.c \
 Core/Src/spdifrx.c \
 Core/Src/spi.c \
 Core/Src/tim.c \
@@ -66,6 +68,8 @@ Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rtc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_rtc_ex.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sai.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sai_ex.c \
+Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_sd.c \
+Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_ll_sdmmc.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spdifrx.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_spi.c \
 Drivers/STM32F7xx_HAL_Driver/Src/stm32f7xx_hal_tim.c \
@@ -95,7 +99,12 @@ Middlewares/Third_Party/FreeRTOS/Source/timers.c \
 Middlewares/Third_Party/FreeRTOS/Source/tasks.c \
 Middlewares/Third_Party/FreeRTOS/Source/event_groups.c \
 Middlewares/Third_Party/FreeRTOS/Source/croutine.c \
-Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c
+Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c \
+Middlewares/Third_Party/FatFs/src/ff_gen_drv.c \
+Middlewares/Third_Party/FatFs/src/ff.c \
+Middlewares/Third_Party/FatFs/src/diskio.c \
+Middlewares/Third_Party/FatFs/src/option/syscall.c \
+Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -161,6 +170,7 @@ C_INCLUDES =  \
 -IDrivers/ILI9341 \
 -IDrivers/STM32F7xx_HAL_Driver/Inc \
 -IDrivers/STM32F7xx_HAL_Driver/Inc/Legacy \
+-IMiddlewares/Third_Party/FatFs/src \
 -IMiddlewares/Third_Party/UGUI \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM7/r0p1 \
 -IDrivers/CMSIS/Device/ST/STM32F7xx/Include \

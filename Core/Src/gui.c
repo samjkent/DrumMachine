@@ -4,10 +4,36 @@
 #include "ugui.h"
 #include "audio_channel.h"
 
+#include <stdio.h>
+#include <string.h>
+
 extern int sequencer_channel;
 
 UG_GUI gui;
 ILI9341 ili9341;
+
+QueueHandle_t xGUIMsgQueue;
+struct GUIMsg
+{
+    uint8_t id;
+    char msg[20];
+};
+
+UG_RESULT gui_fill_frame_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
+    ILI9341_Draw_Rectangle(&ili9341, x1, y1, x2+1, y2+1, c);
+    return UG_RESULT_OK;
+}
+
+UG_RESULT gui_draw_line_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
+    if( y1 == y2 ) {
+        ILI9341_Draw_Horizontal_Line(&ili9341, x1, y1, (x2-x1), c);
+    } else if( x1 == x2 ) {
+        ILI9341_Draw_Vertical_Line(&ili9341, x1, y1, (y2-y1), c);
+    } else {
+        return UG_RESULT_FAIL;
+    }
+    return UG_RESULT_OK;
+}
 
 void p(UG_S16 x, UG_S16 y, UG_COLOR c) {
       ILI9341_Draw_Pixel(&ili9341, x, y, c);
@@ -37,19 +63,48 @@ void gui_init() {
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
 
   // UGUI
-    UG_Init(&gui , p, 320, 240 );
+  UG_Init(&gui , p, 320, 240 );
+  UG_DriverRegister( DRIVER_FILL_FRAME,(void*)gui_fill_frame_hw);
+  UG_DriverRegister( DRIVER_DRAW_LINE,(void*)gui_draw_line_hw);
 
-    UG_ConsoleSetArea(0,0,320,240);
-    UG_FontSelect( &FONT_12X16 ) ;
-    UG_ConsoleSetBackcolor( C_BLACK ) ;
-    UG_ConsoleSetForecolor( C_WHITE ) ;
-    UG_ConsolePutString("System Initialised \n");
 }
 
 void gui_task(void *p) {
+  // Set up queue
+  xGUIMsgQueue = xQueueCreate( 10, sizeof( struct GUIMsg ) );
+  if(xGUIMsgQueue == NULL) {
+    println("Failed to allocate xGUIMsgQueue");
+  }
+
+  // Set up GUI
+  gui_init();
+  int duration, start;
+
+  UG_ConsoleSetArea(0,0,320,240);
+  UG_FontSelect( &FONT_12X16 ) ;
+
+  UG_ConsoleSetBackcolor( C_BLACK ) ;
+  UG_ConsoleSetForecolor( C_WHITE ) ;
+  UG_ConsolePutString("Samples\r\n");
+
   while (1) {
-    UG_Update();
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    duration = HAL_GetTick() - start;
+    start = HAL_GetTick();
+
+    int nMessages = uxQueueMessagesWaiting(&xGUIMsgQueue);
+    while(nMessages > 0) {
+        struct GUIMsg pxRxedMessage;
+        if( xQueueReceive( xGUIMsgQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
+        {
+
+            UG_ConsolePutString(pxRxedMessage.msg);
+            UG_ConsolePutString("\r\n");
+
+            nMessages--;
+        }
+    } 
+
+    vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
 
@@ -98,7 +153,9 @@ void gui_task(void *p) {
 
     }
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    ILI9341_Fill_Screen(&ili9341, BLACK);
+
+    vTaskDelayUntil(40 / portTICK_PERIOD_MS);
   }
 }
 */
@@ -181,3 +238,11 @@ void gui_draw_waveform(int track, int channel, int yPos) {
     prevSample = sample;
   }
 }
+
+void gui_print(char* str) {
+    struct GUIMsg msg;
+    msg.id = (HAL_GetTick() & 0xFF);
+    strcpy(msg.msg, str);
+    xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
+}
+
