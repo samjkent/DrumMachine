@@ -140,7 +140,6 @@ DRESULT disk_write (
 )
 {
   DRESULT res;
-
   res = disk.drv[pdrv]->disk_write(disk.lun[pdrv], buff, sector, count);
   return res;
 }

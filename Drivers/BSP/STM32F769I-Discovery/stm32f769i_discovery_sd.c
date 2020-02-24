@@ -250,9 +250,7 @@ uint8_t BSP_SD_IsDetected(void)
   if (HAL_GPIO_ReadPin(SD_DETECT_GPIO_PORT, SD_DETECT_PIN) == GPIO_PIN_SET)
   {
     status = SD_NOT_PRESENT;
-    printf("SD Card Not Found \r\n");
   } else {
-    printf("SD Card Detected \r\n");
   }
 
     return status;

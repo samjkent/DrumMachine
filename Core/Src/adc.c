@@ -35,7 +35,7 @@ void MX_ADC1_Init(void)
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = DISABLE;
   
-  HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(ADC_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(ADC_IRQn);
 
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -172,7 +172,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
 
   __HAL_LINKDMA(&hadc1,DMA_Handle,hdma_adc1);
   
-  HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream4_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream4_IRQn);
 
 

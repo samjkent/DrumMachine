@@ -64,7 +64,7 @@ DMA_HandleTypeDef hdma_sdmmc2_tx;
 
 void MX_SDMMC2_SD_Init(void)
 {
-
+  println("MX SD");
   hsd2.Instance = SDMMC2;
   hsd2.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
   hsd2.Init.ClockBypass = SDMMC_CLOCK_BYPASS_DISABLE;
@@ -77,7 +77,6 @@ void MX_SDMMC2_SD_Init(void)
 
 void HAL_SD_MspInit(SD_HandleTypeDef* sdHandle)
 {
-
   GPIO_InitTypeDef GPIO_InitStruct;
   if(sdHandle->Instance==SDMMC2)
   {
@@ -164,10 +163,10 @@ void HAL_SD_MspInit(SD_HandleTypeDef* sdHandle)
 
   /* DMA interrupt init */
   /* DMA2_Stream0_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0x0F, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0x0F, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
 
   /* USER CODE END SDMMC2_MspInit 1 */

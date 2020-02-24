@@ -155,6 +155,7 @@ void ILI9341_Draw_Colour_Burst(volatile ILI9341* display, uint16_t Colour, uint3
 
 
 void ILI9341_Draw_Rectangle(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour);
+void ILI9341_Draw_Filled_Rectangle(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour);
 void ILI9341_Draw_Horizontal_Line(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Colour);
 void ILI9341_Draw_Vertical_Line(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Height, uint16_t Colour);
 

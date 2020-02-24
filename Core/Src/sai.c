@@ -243,7 +243,7 @@ void HAL_SAI_MspInit(SAI_HandleTypeDef *hsai)
     }
   }
 
-  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 0x01, 0);
+  HAL_NVIC_SetPriority(DMA2_Stream6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream6_IRQn);
 
 }

@@ -42,6 +42,9 @@ FIL file;
 extern Diskio_drvTypeDef SD_Driver;
 char SDPath[4];
 
+void attempt_fmount();
+FRESULT scan_files(char* path);
+
 AUDIO_DrvTypeDef *audio_drv;
 
 enum modes { SEQUENCER, SELECTOR, LIVE };
@@ -207,8 +210,6 @@ void format_disk() {
     res = f_mount(&SDFatFs, "0:/", 1);
     printf("fmount res %d \r\n", res);
 
-    SD_status();
-
     /* Create a file as new */
     res = f_open(&fil, "0:/hello.txt", FA_OPEN_ALWAYS
                     | FA_WRITE);
@@ -223,54 +224,87 @@ void format_disk() {
     f_mount(0, "", 0);
 }
 
+FRESULT scan_files (
+    char* path        /* Start node to be scanned (***also used as work area***) */
+)
+{
+    FRESULT res;
+    DIR dir;
+    UINT i;
+    static FILINFO fno;
+
+    println("print files: \r\n");
+
+    res = f_mount(&SDFatFs, SDPath, 1);
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) {
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                println("dir");
+            } else {                                       /* It is a file. */
+                gui_print(fno.fname);
+                //println("%s/%s", path, fno.fname);
+            }
+        }
+        f_closedir(&dir);
+    }
+
+    return res;
+}
+
 void attempt_fmount() {
     FRESULT retSD;
     FIL fil;            /* File object */
     UINT br, bw;         /* File read/write count */
 
-    printf("attempt fmount\r\n"); 
     retSD = f_mount(&SDFatFs, SDPath, 1);
 
     HAL_SD_CardInfoTypeDef card_info;
     BSP_SD_GetCardInfo(&card_info);
 
     if(retSD == 0) {
-        printf("mounted\r\n"); 
         retSD = f_open (
             &fil,
             "test.txt",
             FA_OPEN_APPEND | FA_WRITE | FA_READ
         );
-        printf("open result %d \r\n", retSD);
     } else {
-        printf("f_mount failed %d \r\n", retSD); 
+        println("f_mount failed %d", retSD); 
     }
 
-    /* Write a message */
-    printf("write \r\n");
-    f_lseek(&fil, 0);
+    /* Write a message 
     retSD = f_lseek(&fil, f_size(&fil));
-    char test[] = "Hello world! \r\nFatFS test \r\n"; 
+    char test[] = "sam kent was here\r\n"; 
     retSD = f_write(&fil, &test, sizeof test, &bw);
     if (bw != (sizeof test)) {
-        printf("failed writing %d\r\n", bw);
-        printf("error: %d \r\n", retSD); 
+        println("failed writing %d\r\n", bw);
+        println("error: %d \r\n", retSD); 
     }
+    */
 
 
-    printf("print file: \r\n");
     f_lseek(&fil, 0);
     char line[100]; /* Line buffer */
     /* Read every line and display it */
     while (f_gets(line, sizeof line, &fil)) {
         printf(line);
     }
-    printf("finished reading \r\n");
     /* Close the file */
-    f_close(&fil);
+    retSD = f_close(&fil);
+    
+    if(retSD != 0) {
+        println("f_close failed: %d", retSD);
+    } else {
+        println("file closed successfully");
+    }
 
-    /* Unregister work area */
+    /* Unregister work area 
+    */
     f_mount(0, "", 0);
+    
 }
 
 int main(void) {
@@ -306,36 +340,36 @@ int main(void) {
   if(HAL_ADC_Start_DMA(&hadc3, (uint32_t *)(&ADCBuffer_3), ADC_BUFF_SIZE) != HAL_OK) {
           Error_Handler();
   }
-
+  
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
+  println("Audio Driver");
 
   if (0 != audio_drv->Play(AUDIO_I2C_ADDRESS, NULL, 0)) {
     Error_Handler();
   }
+  println("SAI init");
 
   retVal =
       HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
   if (HAL_OK != retVal)
     Error_Handler();
 
-  gui_init();
-
-    uint8_t ret;
-    sprintf(&SDPath, "0:/");
-    ret = FATFS_LinkDriver(&SD_Driver, SDPath);
-    printf("FATFS_LinkDriver() returns %d \r\n", ret);
-
-  //format_disk();
-  attempt_fmount();
-
-  xTaskCreate(blinky, (char *)"blinky", 256, NULL, 8, NULL);
+  println("xTaskCreate");
+  xTaskCreate(gui_task, (char *)"GUI Task", 1024, NULL, 5, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
+  // xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
+  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
+ 
+  uint8_t ret;
+  sprintf(SDPath, "0:/");
+  ret = FATFS_LinkDriver(&SD_Driver, SDPath);
+  printf("FATFS_LinkDriver() returns %d \r\n", ret);
+
 
   /* Start scheduler */
+  println("osKernelStart()");
   osKernelStart();
 
   /* Infinite loop */
@@ -418,7 +452,7 @@ void SystemClock_Config(void) {
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
 /**
@@ -446,8 +480,12 @@ void _Error_Handler(char *file, int line) {
   }
 }
 
+/**
+ * Redirect printf to UART1
+ */
 int _write(int file, char* data, int len)
 {
     HAL_StatusTypeDef status = HAL_UART_Transmit(&huart1, data, len, 0xFFFF);
     return (status == HAL_OK ? len : 0);
 }
+

@@ -916,7 +916,6 @@ FRESULT move_window (	/* Returns FR_OK or FR_DISK_ERROR */
 {
 	FRESULT res = FR_OK;
 
-
 	if (sector != fs->winsect) {	/* Window offset changed? */
 #if !_FS_READONLY
 		res = sync_window(fs);		/* Write-back changes */
@@ -2970,7 +2969,6 @@ BYTE check_fs (	/* 0:FAT, 1:exFAT, 2:Valid BS but not FAT, 3:Not a BS, 4:Disk er
 	fs->wflag = 0; fs->winsect = 0xFFFFFFFF;		/* Invaidate window */
 	if (move_window(fs, sect) != FR_OK) return 4;	/* Load boot record */
 	if (ld_word(fs->win + BS_55AA) != 0xAA55) return 3;	/* Check boot record signature (always placed here even if the sector size is >512) */
-
 	if (fs->win[BS_JmpBoot] == 0xE9 || (fs->win[BS_JmpBoot] == 0xEB && fs->win[BS_JmpBoot + 2] == 0x90)) {
 		if ((ld_dword(fs->win + BS_FilSysType) & 0xFFFFFF) == 0x544146) return 0;	/* Check "FAT" string */
 		if (ld_dword(fs->win + BS_FilSysType32) == 0x33544146) return 0;			/* Check "FAT3" string */
@@ -3816,6 +3814,7 @@ FRESULT f_close (
 {
 	FRESULT res;
 	FATFS *fs;
+
 
 #if !_FS_READONLY
 	res = f_sync(fp);					/* Flush cached data */

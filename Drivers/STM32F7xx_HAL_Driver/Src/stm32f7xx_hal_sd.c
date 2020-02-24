@@ -385,11 +385,9 @@ HAL_StatusTypeDef HAL_SD_InitCard(SD_HandleTypeDef *hsd)
   }
 
   /* Card initialization */
-  printf("Init card \r\n");
   errorstate = SD_InitCard(hsd);
   if(errorstate != HAL_SD_ERROR_NONE)
   {
-    printf("Init card error: %d \r\n", errorstate);
     hsd->State = HAL_SD_STATE_READY;
     hsd->ErrorCode |= errorstate;
     return HAL_ERROR;
@@ -655,7 +653,6 @@ HAL_StatusTypeDef HAL_SD_ReadBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint3
     
     hsd->State = HAL_SD_STATE_READY;
     
-    printf("read ok \r\n"); 
     return HAL_OK;
   }
   else
@@ -684,7 +681,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
   uint32_t tickstart = HAL_GetTick();
   uint32_t count = 0;
   uint32_t *tempbuff = (uint32_t *)pData;
-  
+
   if(NULL == pData)
   {
     hsd->ErrorCode |= HAL_SD_ERROR_PARAM;
@@ -832,6 +829,7 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks(SD_HandleTypeDef *hsd, uint8_t *pData, uint
   else
   {
     hsd->ErrorCode |= HAL_SD_ERROR_BUSY;
+
     return HAL_ERROR;
   }
 }
@@ -1169,7 +1167,8 @@ HAL_StatusTypeDef HAL_SD_WriteBlocks_DMA(SD_HandleTypeDef *hsd, uint8_t *pData, 
 {
   SDMMC_DataInitTypeDef config;
   uint32_t errorstate = HAL_SD_ERROR_NONE;
-  
+
+
   if(NULL == pData)
   {
     hsd->ErrorCode |= HAL_SD_ERROR_PARAM;

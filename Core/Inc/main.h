@@ -378,6 +378,10 @@
 void _Error_Handler(char *, int);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+
+#define print(a, args...) printf("%s(%s:%d) " a,  __func__,__FILE__, __LINE__, ##args)
+#define println(a, args...) print(a "\n", ##args)
+
 #ifdef __cplusplus
 }
 #endif

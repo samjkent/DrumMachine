@@ -59,8 +59,6 @@
 osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN Variables */
-osMessageQId SDQueueID;
-
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/

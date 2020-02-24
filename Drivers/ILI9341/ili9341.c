@@ -381,7 +381,7 @@ void ILI9341_Draw_Colour_Burst(volatile ILI9341* display, uint16_t Colour, uint3
     {
         for(uint32_t j = 0; j < (Sending_in_Block); j++)
             {
-            HAL_SPI_Transmit(display->hspi, (unsigned char *)burst_buffer, Buffer_Size, 10);
+                HAL_SPI_Transmit(display->hspi, (unsigned char *)burst_buffer, Buffer_Size, 10);
             }
     }
 
@@ -459,6 +459,21 @@ void ILI9341_Draw_Pixel(volatile ILI9341* display, uint16_t X, uint16_t Y, uint1
 //
 
 void ILI9341_Draw_Rectangle(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour)
+{
+    if((X >=display->screen_width) || (Y >=display->screen_height)) return;
+    if((X+Width-1)>=display->screen_width)
+    {
+        Width=display->screen_width-X;
+    }
+    if((Y+Height-1)>=display->screen_height)
+    {
+        Height=display->screen_height-Y;
+    }
+    ILI9341_Set_Address(display, X, Y, X+Width-1, Y+Height-1);
+    ILI9341_Draw_Colour_Burst(display, Colour, Height*Width);
+}
+
+void ILI9341_Draw_Filled_Rectangle(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour)
 {
     if((X >=display->screen_width) || (Y >=display->screen_height)) return;
     if((X+Width-1)>=display->screen_width)
