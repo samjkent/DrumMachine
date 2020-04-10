@@ -14,3 +14,8 @@ void gui_draw_waveform(int track, int channel, int yPos);
 
 void gui_print(char* string);
 
+struct GUIMsg
+{
+    uint8_t id;
+    char msg[20];
+};

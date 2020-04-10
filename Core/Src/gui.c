@@ -8,16 +8,10 @@
 #include <string.h>
 
 extern int sequencer_channel;
+extern QueueHandle_t xGUIMsgQueue;
 
 UG_GUI gui;
 ILI9341 ili9341;
-
-QueueHandle_t xGUIMsgQueue;
-struct GUIMsg
-{
-    uint8_t id;
-    char msg[20];
-};
 
 UG_RESULT gui_fill_frame_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
     ILI9341_Draw_Rectangle(&ili9341, x1, y1, x2+1, y2+1, c);
@@ -70,12 +64,6 @@ void gui_init() {
 }
 
 void gui_task(void *p) {
-  // Set up queue
-  xGUIMsgQueue = xQueueCreate( 10, sizeof( struct GUIMsg ) );
-  if(xGUIMsgQueue == NULL) {
-    println("Failed to allocate xGUIMsgQueue");
-  }
-
   // Set up GUI
   gui_init();
   int duration, start;
