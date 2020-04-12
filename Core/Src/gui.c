@@ -8,7 +8,7 @@
 #include <string.h>
 
 extern int sequencer_channel;
-extern QueueHandle_t xGUIMsgQueue;
+QueueHandle_t xGUIMsgQueue;
 
 UG_GUI gui;
 ILI9341 ili9341;
@@ -92,7 +92,7 @@ void gui_task(void *p) {
         }
     } 
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
 

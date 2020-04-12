@@ -60,7 +60,7 @@
 osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN Variables */
-QueueHandle_t xGUIMsgQueue;
+extern QueueHandle_t xGUIMsgQueue;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -108,6 +108,7 @@ void MX_FREERTOS_Init(void) {
   if(xGUIMsgQueue == NULL) {
     println("Failed to allocate xGUIMsgQueue");
   }
+  println("Created xGUIMsgQueue");
 
   /* USER CODE END RTOS_QUEUES */
 }

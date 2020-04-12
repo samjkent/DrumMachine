@@ -103,7 +103,8 @@ void WM8894_Init() {
 void blinky(void *p) {
   // General task thread
   vTaskDelay(1000 / portTICK_PERIOD_MS);
-  scan_files(&SDPath);
+  attempt_fmount();
+  scan_files(SDPath);
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
@@ -235,12 +236,7 @@ FRESULT scan_files (
     UINT i;
     static FILINFO fno;
 
-    println("print files: \r\n");
-    gui_print("file");
-
     res = f_mount(&SDFatFs, path, 1);
-
-    sprintf(&path[i], "0:/mgs2_sound");
     res = f_opendir(&dir, path);                       /* Open the directory */
     if (res == FR_OK) {
         for (;;) {
@@ -248,8 +244,7 @@ FRESULT scan_files (
             if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
             if (fno.fattrib & AM_DIR) {                    /* It is a directory */
             } else {                                       /* It is a file. */
-                println("file: \r\n");
-                gui_print("file");
+                println("%s%s", path, fno.fname);
                 gui_print(fno.fname);
             }
         }
@@ -363,8 +358,8 @@ int main(void) {
 
   println("xTaskCreate");
   xTaskCreate(gui_task, (char *)"GUI Task", 1024, NULL, 5, NULL);
-  // xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
-  // xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
+  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
   // xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
   xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
  
