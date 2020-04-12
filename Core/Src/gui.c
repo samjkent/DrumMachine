@@ -69,11 +69,11 @@ void gui_task(void *p) {
   int duration, start;
 
   UG_ConsoleSetArea(0,0,320,240);
-  UG_FontSelect( &FONT_12X16 ) ;
+  UG_FontSelect( &FONT_8X14 ) ;
+  UG_FontSetHSpace( 0 ) ;
 
   UG_ConsoleSetBackcolor( C_BLACK ) ;
   UG_ConsoleSetForecolor( C_WHITE ) ;
-  UG_ConsolePutString("Samples\r\n");
 
   while (1) {
     duration = HAL_GetTick() - start;
@@ -84,9 +84,24 @@ void gui_task(void *p) {
         struct GUIMsg pxRxedMessage;
         if( xQueueReceive( xGUIMsgQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
         {
+            // Process markup
+            if(pxRxedMessage.markup == MARKUP_INVERT) {
+                UG_ConsoleSetBackcolor( C_WHITE );
+                UG_ConsoleSetForecolor( C_BLACK );
+            }
+            if(pxRxedMessage.markup == MARKUP_HEADING) {
+                UG_FontSetVSpace( 4 ) ;
+                UG_FontSelect( &FONT_12X16 ) ;
+            }
 
             UG_ConsolePutString(pxRxedMessage.msg);
             UG_ConsolePutString("\r\n");
+
+            // Revert to normal
+            UG_ConsoleSetBackcolor( C_BLACK );
+            UG_ConsoleSetForecolor( C_WHITE );
+            UG_FontSelect( &FONT_8X14 ) ;
+            UG_FontSetVSpace( 0 ) ;
 
             nMessages--;
         }
@@ -227,9 +242,10 @@ void gui_draw_waveform(int track, int channel, int yPos) {
   }
 }
 
-void gui_print(char* str) {
+void gui_print(char* str, uint8_t flags) {
     struct GUIMsg msg;
     msg.id = (HAL_GetTick() & 0xFF);
+    msg.markup = flags;
     strcpy(msg.msg, str);
     xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
 }
