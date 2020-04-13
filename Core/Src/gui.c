@@ -10,8 +10,9 @@
 extern int sequencer_channel;
 QueueHandle_t xGUIMsgQueue;
 
-UG_GUI gui;
+// UG_GUI gui;
 ILI9341 ili9341;
+int y;
 
 UG_RESULT gui_fill_frame_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
     ILI9341_Draw_Rectangle(&ili9341, x1, y1, x2+1, y2+1, c);
@@ -57,9 +58,11 @@ void gui_init() {
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
 
   // UGUI
+  /*
   UG_Init(&gui , p, 320, 240 );
   UG_DriverRegister( DRIVER_FILL_FRAME,(void*)gui_fill_frame_hw);
   UG_DriverRegister( DRIVER_DRAW_LINE,(void*)gui_draw_line_hw);
+  */
 
 }
 
@@ -67,13 +70,15 @@ void gui_task(void *p) {
   // Set up GUI
   gui_init();
   int duration, start;
+                
+  ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
 
-  UG_ConsoleSetArea(0,0,320,240);
-  UG_FontSelect( &FONT_8X14 ) ;
-  UG_FontSetHSpace( 0 ) ;
+  // UG_ConsoleSetArea(0,0,320,240);
+  // UG_FontSelect( &FONT_8X14 ) ;
+  // UG_FontSetHSpace( 0 ) ;
 
-  UG_ConsoleSetBackcolor( C_BLACK ) ;
-  UG_ConsoleSetForecolor( C_WHITE ) ;
+  // UG_ConsoleSetBackcolor( C_BLACK ) ;
+  // UG_ConsoleSetForecolor( C_WHITE ) ;
 
   while (1) {
     duration = HAL_GetTick() - start;
@@ -84,27 +89,37 @@ void gui_task(void *p) {
         struct GUIMsg pxRxedMessage;
         if( xQueueReceive( xGUIMsgQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
         {
+            int f = GUI_FOREGROUND_COLOUR;
+            int b = GUI_BACKGROUND_COLOUR;
+
             // Process markup
             if(pxRxedMessage.markup == MARKUP_INVERT) {
-                UG_ConsoleSetBackcolor( C_WHITE );
-                UG_ConsoleSetForecolor( C_BLACK );
+                f = GUI_BACKGROUND_COLOUR;
+                b = GUI_FOREGROUND_COLOUR;
             }
             if(pxRxedMessage.markup == MARKUP_HEADING) {
-                UG_FontSelect( &FONT_12X16 ) ;
+                // UG_FontSelect( &FONT_12X16 ) ;
             }
             if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
-                UG_ConsoleClear();
+                y = 0;
+                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
                 continue;
             }
+            if(pxRxedMessage.markup == MARKUP_ALERT) {
+                y = 0;
+                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+            } 
 
-            UG_ConsolePutString(pxRxedMessage.msg);
-            UG_ConsolePutString("\r\n");
+            ILI9341_Draw_Text(&ili9341, pxRxedMessage.msg, 0, y, f, 2, b);
+            y += 16;
+            // UG_ConsolePutString(pxRxedMessage.msg);
+            // UG_ConsolePutString("\r\n");
 
             // Revert to normal
-            UG_ConsoleSetBackcolor( C_BLACK );
-            UG_ConsoleSetForecolor( C_WHITE );
-            UG_FontSelect( &FONT_8X14 ) ;
-            UG_FontSetVSpace( 0 ) ;
+            // UG_ConsoleSetBackcolor( C_BLACK );
+            // UG_ConsoleSetForecolor( C_WHITE );
+            // UG_FontSelect( &FONT_8X14 ) ;
+            // UG_FontSetVSpace( 0 ) ;
 
             nMessages--;
         }

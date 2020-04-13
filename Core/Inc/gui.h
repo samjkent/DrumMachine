@@ -7,6 +7,7 @@
 #define MARKUP_NONE    0x0
 #define MARKUP_INVERT  0x1
 #define MARKUP_HEADING 0x2
+#define MARKUP_ALERT 0x3
 #define GUI_FLAG_CLEAR 0x4
 
 void gui_init();

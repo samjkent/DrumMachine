@@ -40,7 +40,7 @@ FRESULT scan_files () {
 
 void attempt_fmount() {
     FRESULT retSD;
-    FIL fil;            /* File object */
+    FIL fil;             /* File object */
     UINT br, bw;         /* File read/write count */
 
     retSD = f_mount(&SDFatFs, SDPath, 1);
@@ -49,13 +49,17 @@ void attempt_fmount() {
 
 void file_manager_draw() {
     // gui_console_reset();
-    gui_print("File Manager", MARKUP_HEADING);
-    for(uint8_t i = current_index; (i < current_index + 15) && (i < (max_index+1)); i++) {
+    char title[30];
+    sprintf(&title, "File Manager (%u/%u)", current_index, max_index - 1);
+    gui_print(title, MARKUP_HEADING);
+    for(uint8_t i = current_index; (i < current_index + 15) && (i < (max_index)); i++) {
         if(directory[i].fname == 0) break;
         char fname[30];
         sprintf(&fname, "%s", directory[i].fname);
         if(directory[i].fattrib == AM_DIR) {
             sprintf(&fname, "%s/", fname);
+        } else {
+            sprintf(&fname, "%s   %ukB", fname, (int)(directory[i].fsize/1024));
         }
         gui_print(fname, (i == current_index ? MARKUP_INVERT : MARKUP_NONE));
     }
@@ -68,6 +72,9 @@ void file_manager_select() {
         current_index = 0;
         gui_console_reset();
         file_manager_draw();
+    } else {
+        gui_print("Loading..", MARKUP_ALERT);
+        file_manager_load();
     }
 }
 
@@ -96,6 +103,34 @@ void file_manager_directory_up() {
         }
     }
     scan_files();
+    current_index = 0;
     gui_console_reset();
     file_manager_draw();
+}
+
+void file_manager_load() {
+    FIL fil;        /* File object */
+    char line[100]; /* Line buffer */
+    FRESULT fr;     /* FatFs return code */
+
+    char path[256];
+    sprintf(&path, "%s/%s", current_path, directory[current_index].fname);
+    println("%s", path);
+    fr = f_open(&fil, path, FA_READ);
+    if (fr) {
+        gui_print("Error opening file", MARKUP_ALERT);
+        println("%u", (int)fr);
+        return (int)fr;
+    }
+
+    /* Read every line and display it */
+    while (f_gets(line, sizeof line, &fil)) {
+        println("%s", line);
+    }
+
+    println("Finished reading");
+    gui_console_reset();
+    file_manager_draw();
+    /* Close the file */
+    f_close(&fil);
 }
