@@ -104,7 +104,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   // Set up queue
-  xGUIMsgQueue = xQueueCreate( 10, sizeof( struct GUIMsg ) );
+  xGUIMsgQueue = xQueueCreate( 25, sizeof( struct GUIMsg ) );
   if(xGUIMsgQueue == NULL) {
     println("Failed to allocate xGUIMsgQueue");
   }

@@ -4,9 +4,14 @@
 #include "i2c.h"
 #include "MCP23017.h"
 #include "ws2812b.h"
+#include "file_manager.h"
+#include "gui.h"
 
 MCP23017_HandleTypeDef hmcp;
 MCP23017_HandleTypeDef hmcp1;
+
+uint8_t enc1;
+uint8_t enc1_prev;
 
 extern uint8_t sequencer_channel;
 
@@ -90,6 +95,59 @@ void buttons_read(void *p) {
     // Only FLAG = 1 w/ CAP = 0 will remain 0
     uint32_t currentStateIRQ = currentState | ~((hmcp.intf[1] << 24) | (hmcp.intf[0] << 16) |
                             (hmcp1.intf[1] << 8) | hmcp1.intf[0]);
+
+    // Encoder 1 pressed
+    if(!((currentState >> (25)) & 0x01)) {
+        if(!enc1) {
+            enc1 = 1;
+            file_manager_select();
+        }
+    } else {
+        enc1 = 0;
+    }
+    // Back button pressed
+    if((currentState >> (24)) & 0x01) {
+
+    }
+    
+    // Check encoder position
+    enc1_prev = enc1_prev << 2 | ((currentState >> 27) & 0x01) << 1 | (currentState >> 26) & 0x01;
+    switch(enc1_prev & 0xF) {
+        case 0b0000:
+            break;
+        case 0b0001:
+            file_manager_index_inc();
+            break;
+        case 0b0010:
+            file_manager_index_dec();
+            break;
+        case 0b0011:
+            break;
+        case 0b0100:
+            break;
+        case 0b0101:
+            break;
+        case 0b0110:
+            break;
+        case 0b0111:
+            break;
+        case 0b1000:
+            break;
+        case 0b1001:
+            break;
+        case 0b1010:
+            break;
+        case 0b1011:
+            break;
+        case 0b1100:
+            break;
+        case 0b1101:
+            break;
+        case 0b1110:
+            break;
+        case 0b1111:
+            break;
+    }
 
     // Check for channel switch key
     if((currentState >> 20) & 0x01) {

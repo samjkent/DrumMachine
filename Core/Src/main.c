@@ -102,7 +102,7 @@ void blinky(void *p) {
   // General task thread
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   attempt_fmount();
-  scan_files(SDPath);
+  scan_files();
   file_manager_draw();
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
@@ -275,14 +275,14 @@ int main(void) {
     Error_Handler();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 1024, NULL, 5, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
-  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 64, NULL, 8, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 5, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
+  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
   xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
  
   uint8_t ret;
-  sprintf(SDPath, "0:/");
+  sprintf(SDPath, "0:");
   ret = FATFS_LinkDriver(&SD_Driver, SDPath);
   printf("FATFS_LinkDriver() returns %d \r\n", ret);
 

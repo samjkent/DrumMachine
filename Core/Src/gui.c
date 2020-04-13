@@ -90,7 +90,6 @@ void gui_task(void *p) {
                 UG_ConsoleSetForecolor( C_BLACK );
             }
             if(pxRxedMessage.markup == MARKUP_HEADING) {
-                UG_FontSetVSpace( 4 ) ;
                 UG_FontSelect( &FONT_12X16 ) ;
             }
 
@@ -240,6 +239,10 @@ void gui_draw_waveform(int track, int channel, int yPos) {
 
     prevSample = sample;
   }
+}
+
+void gui_console_reset() {
+  UG_ConsoleClear();
 }
 
 void gui_print(char* str, uint8_t flags) {

@@ -16,6 +16,8 @@ void gui_draw_ticks(int fs, int div, int size, int windowSize, int x, int yPos);
 
 void gui_draw_waveform(int track, int channel, int yPos);
 
+void gui_console_reset();
+
 void gui_print(char* string, uint8_t flags);
 
 struct GUIMsg
