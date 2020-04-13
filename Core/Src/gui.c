@@ -90,8 +90,11 @@ void gui_task(void *p) {
                 UG_ConsoleSetForecolor( C_BLACK );
             }
             if(pxRxedMessage.markup == MARKUP_HEADING) {
-                UG_FontSetVSpace( 4 ) ;
                 UG_FontSelect( &FONT_12X16 ) ;
+            }
+            if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
+                UG_ConsoleClear();
+                continue;
             }
 
             UG_ConsolePutString(pxRxedMessage.msg);
@@ -107,7 +110,7 @@ void gui_task(void *p) {
         }
     } 
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
 
@@ -240,6 +243,13 @@ void gui_draw_waveform(int track, int channel, int yPos) {
 
     prevSample = sample;
   }
+}
+
+void gui_console_reset() {
+    struct GUIMsg msg;
+    msg.id = (HAL_GetTick() & 0xFF);
+    msg.markup = GUI_FLAG_CLEAR;
+    xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
 }
 
 void gui_print(char* str, uint8_t flags) {

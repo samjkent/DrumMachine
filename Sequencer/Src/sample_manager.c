@@ -3,7 +3,7 @@
 
 void sample_manager_init() {
   sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x600, 0x7000);
-  sequencer_set_adsr(0, .2, 0, 1, 2);
+  sequencer_set_adsr(0, 0.2, 1, 1, 2);
 
   sequencer_set_sample(1, AUDIO_FILE_ADDRESS + 0x15000, 0x8000);
   sequencer_set_adsr(1, 0, 0.2, 0.5, 1);
