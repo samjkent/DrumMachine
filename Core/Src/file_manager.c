@@ -48,7 +48,7 @@ void attempt_fmount() {
 }
 
 void file_manager_draw() {
-    gui_console_reset();
+    // gui_console_reset();
     gui_print("File Manager", MARKUP_HEADING);
     for(uint8_t i = current_index; (i < current_index + 15) && (i < (max_index+1)); i++) {
         if(directory[i].fname == 0) break;
@@ -66,17 +66,36 @@ void file_manager_select() {
         sprintf(&current_path, "%s/%s", current_path, directory[current_index].fname);
         scan_files();
         current_index = 0;
+        gui_console_reset();
+        file_manager_draw();
     }
 }
 
 void file_manager_index_inc() {
     if(current_index < (max_index - 1)) {
         current_index++;
+        gui_console_reset();
+        file_manager_draw();
     }
 }
 
 void file_manager_index_dec() {
     if(current_index > 0) {
         current_index--;
+        gui_console_reset();
+        file_manager_draw();
     }
+}
+
+void file_manager_directory_up() {
+    int length = strlen(current_path);
+    for(int n = length; n > 0; n--) {
+        if(current_path[n] == '/') {
+            current_path[n] = '\0';
+            break;
+        }
+    }
+    scan_files();
+    gui_console_reset();
+    file_manager_draw();
 }

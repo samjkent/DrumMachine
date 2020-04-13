@@ -106,8 +106,8 @@ void buttons_read(void *p) {
         enc1 = 0;
     }
     // Back button pressed
-    if((currentState >> (24)) & 0x01) {
-
+    if(!((currentState >> (24)) & 0x01)) {
+        file_manager_directory_up();
     }
     
     // Check encoder position

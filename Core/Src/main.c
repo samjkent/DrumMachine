@@ -275,7 +275,7 @@ int main(void) {
     Error_Handler();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 5, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 3, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
   xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
