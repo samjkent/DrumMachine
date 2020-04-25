@@ -30,6 +30,7 @@ Core/Src/gpio.c \
 Core/Src/dma.c \
 Core/Src/gui.c \
 Core/Src/adc.c \
+Core/Src/file_manager.c \
 Core/Src/freertos.c \
 Core/Src/i2c.c \
 Core/Src/iwdg.c \

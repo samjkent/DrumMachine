@@ -50,6 +50,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
+#include "gui.h"
 
 /* USER CODE BEGIN Includes */     
 
@@ -59,6 +60,7 @@
 osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN Variables */
+extern QueueHandle_t xGUIMsgQueue;
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -101,6 +103,13 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  // Set up queue
+  xGUIMsgQueue = xQueueCreate( 25, sizeof( struct GUIMsg ) );
+  if(xGUIMsgQueue == NULL) {
+    println("Failed to allocate xGUIMsgQueue");
+  }
+  println("Created xGUIMsgQueue");
+
   /* USER CODE END RTOS_QUEUES */
 }
 
