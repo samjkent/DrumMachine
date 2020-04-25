@@ -40,6 +40,7 @@ Core/Src/sai.c \
 Core/Src/sdmmc.c \
 Core/Src/sd_diskio.c \
 Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_sd.c \
+Drivers/BSP/STM32F769I-Discovery/stm32f769i_discovery_qspi.c \
 Core/Src/spdifrx.c \
 Core/Src/spi.c \
 Core/Src/tim.c \

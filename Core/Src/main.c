@@ -30,12 +30,10 @@
 #include <math.h>
 
 #include "stm32f769i_discovery_sd.h"
+#include "stm32f769i_discovery_qspi.h"
 
 /* Private variables ---------------------------------------------------------*/
-#define PLAY_BUFF_SIZE 256
-
 #define ADC_BUFF_SIZE 30 
-
 #define NUM_OF_CHANNELS 8
 
 FATFS SDFatFs;
@@ -53,20 +51,16 @@ extern TaskHandle_t xTaskToNotify_buttons_read;
 
 extern uint8_t sequencer_channel;
 
-int16_t SaiBuffer[PLAY_BUFF_SIZE];
-int16_t SaiBufferSample = 0x0;
-
 uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
 uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
 
-volatile int UpdatePointer = -1;
+int fetched_samples = 0;
 uint32_t playProgress;
+uint16_t read_buffer[128 * NUM_OF_CHANNELS];
 
 int current_step = 0;
 
 volatile uint8_t retVal;
-
-TaskHandle_t xAudioBufferManager;
 
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
@@ -98,12 +92,28 @@ void WM8894_Init() {
   }
 }
 
+uint8_t wav[42];
+void debug_ram_samples() {
+    for(int i = 0; i < 1; i++) {
+        BSP_QSPI_Read(wav, (i * SDRAM_OFFSET), 42);
+        println("Channel %u", i);
+        println("chunkid %c%c%c%c", wav[0], wav[1], wav[2], wav[3]);
+        println("chunksize %lu", wav[7] << 24 | wav[6] << 16 | wav[5] << 8 | wav[4]);
+        println("format %c%c%c%c", wav[8], wav[9], wav[10], wav[11]);
+        println("subchunkid %c%c%c%c", wav[12], wav[13], wav[14], wav[15]);
+        println(" ");
+    }
+}
+
 void blinky(void *p) {
   // General task thread
   vTaskDelay(1000 / portTICK_PERIOD_MS);
   attempt_fmount();
   scan_files();
   file_manager_draw();
+
+  debug_ram_samples();
+
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
@@ -141,45 +151,6 @@ void semiquaver(void *p) {
       // Set selected sample on
       ws2812b_set_pixel(sequencer_channel, 0x0F0F00, 0xFFFF00);
     }
-  }
-}
-
-void audioBufferManager(void *p) {
-  portTASK_USES_FLOATING_POINT();
-
-  while (1) {
-    // Generate samples
-    if (UpdatePointer != -1) {
-      int pos = UpdatePointer;
-      UpdatePointer = -1;
-
-      for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
-        SaiBufferSample = 0x00;
-
-        for (int i = 0; i < NUM_OF_CHANNELS; i++) {
-          if (sequencer[i].sample_progress < sequencer[i].sample_length) {
-            int16_t sample =
-                (*(uint16_t *)((uint32_t)sequencer[i].sample_start +
-                               (uint32_t)sequencer[i].sample_progress));
-            SaiBufferSample += (int16_t)((sample)*sequencer_get_adsr(i));
-            sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
-          }
-        }
-
-        SaiBuffer[pos + i] = SaiBufferSample;
-      }
-
-      if (UpdatePointer != -1) {
-        // Error_Handler();
-      }
-    } else {
-      // Tasks if we're not updating samples
-      for (int j = 0; j < NUM_OF_CHANNELS; j++) {
-        sequencer_calc_adsr(j);
-      }
-    }
-
-    vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
 
@@ -250,6 +221,8 @@ int main(void) {
   
   ws2812b_init();
 
+  BSP_QSPI_Init();
+
   MX_ADC1_Init();
   MX_ADC3_Init();
   if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer_1), ADC_BUFF_SIZE) != HAL_OK) {
@@ -267,7 +240,6 @@ int main(void) {
   if (0 != audio_drv->Play(AUDIO_I2C_ADDRESS, NULL, 0)) {
     Error_Handler();
   }
-  println("SAI init");
 
   retVal =
       HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
@@ -275,11 +247,11 @@ int main(void) {
     Error_Handler();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 3, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
-  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
-  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
+  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 15, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 4, NULL);
+  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 2, NULL);
  
   uint8_t ret;
   sprintf(SDPath, "0:");

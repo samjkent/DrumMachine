@@ -2,6 +2,10 @@
 #include "gui.h"
 #include "ff_gen_drv.h"
 #include "ff.h"
+#include "stm32f769i_discovery_qspi.h"
+#include "audio_channel.h"
+
+extern uint8_t sequencer_channel;
 
 char current_path[30];
 uint8_t current_index;
@@ -110,8 +114,10 @@ void file_manager_directory_up() {
 
 void file_manager_load() {
     FIL fil;        /* File object */
-    char line[100]; /* Line buffer */
+    BYTE buffer[512];   /* file copy buffer */
     FRESULT fr;     /* FatFs return code */
+    UINT br = 512;
+    int block = 0;
 
     char path[256];
     sprintf(&path, "%s/%s", current_path, directory[current_index].fname);
@@ -122,10 +128,13 @@ void file_manager_load() {
         println("%u", (int)fr);
         return (int)fr;
     }
+  
+    BSP_QSPI_Init();
 
-    /* Read every line and display it */
-    while (f_gets(line, sizeof line, &fil)) {
-        println("%s", line);
+    while(br == sizeof buffer) { 
+        f_read(&fil, buffer, sizeof buffer, &br);
+        BSP_QSPI_Write(&buffer, (SDRAM_OFFSET * sequencer_channel) + (512 * block), sizeof buffer);
+        block++;
     }
 
     println("Finished reading");
