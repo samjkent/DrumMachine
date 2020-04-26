@@ -17,9 +17,10 @@ int16_t SaiBufferSample;
 uint32_t playProgress;
 
 TaskHandle_t xAudioBufferManager;
+static TaskHandle_t xTaskToNotify_audio_task = NULL;
 
 void WM8894_Init();
-void audioBufferManager(void *p);
+void audio_task(void *p);
 
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai);
 

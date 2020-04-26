@@ -19,8 +19,9 @@ void WM8894_Init() {
   }
 }
 
-void audioBufferManager(void *p) {
+void audio_task(void *p) {
   int retVal;
+  uint32_t ulNotificationValue;
   portTASK_USES_FLOATING_POINT();
 
   println("Audio Driver");
@@ -32,13 +33,19 @@ void audioBufferManager(void *p) {
       HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
   if (HAL_OK != retVal)
     Error_Handler();
+  
+  xTaskToNotify_audio_task = xTaskGetCurrentTaskHandle();
 
   while (1) {
+    ulNotificationValue = ulTaskNotifyTake(pdTRUE, 2 / portTICK_PERIOD_MS);
+
     // Generate samples
     if (UpdatePointer != -1) {
       int pos = UpdatePointer;
       UpdatePointer = -1;
 
+
+      /*
       for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
         SaiBufferSample = 0x00;
 
@@ -54,24 +61,32 @@ void audioBufferManager(void *p) {
 
         SaiBuffer[pos + i] = SaiBufferSample;
       }
+      */
 
       if (UpdatePointer != -1) {
+        println("audio task too slow");
         // Error_Handler();
       }
-    } else {
-      // Tasks if we're not updating samples
-      for (int j = 0; j < NUM_OF_CHANNELS; j++) {
-        sequencer_calc_adsr(j);
-      }
-    }
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+  }
   }
 }
 
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai) {
-  UpdatePointer = PLAY_BUFF_SIZE / 2;
+    UpdatePointer = PLAY_BUFF_SIZE / 2;
+    if (xTaskToNotify_audio_task != NULL) {
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      vTaskNotifyGiveFromISR(xTaskToNotify_audio_task, &xHigherPriorityTaskWoken);
+      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 
-void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai) { UpdatePointer = 0; }
+void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai) { 
+    UpdatePointer = 0; 
+    if (xTaskToNotify_audio_task != NULL) {
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      vTaskNotifyGiveFromISR(xTaskToNotify_audio_task, &xHigherPriorityTaskWoken);
+      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
 
