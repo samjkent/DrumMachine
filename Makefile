@@ -25,6 +25,7 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 Core/Src/buttons.c \
+Core/Src/audio.c \
 Core/Src/main.c \
 Core/Src/gpio.c \
 Core/Src/dma.c \
