@@ -118,8 +118,6 @@ void file_manager_load() {
     FRESULT fr;     /* FatFs return code */
     UINT br = 512;
     int block = 0;
-    char line[100]; /* Line buffer */
-    FRESULT fr;     /* FatFs return code */
 
     char path[256];
     sprintf(&path, "%s/%s", current_path, directory[current_index].fname);
