@@ -5008,12 +5008,6 @@ void UG_ConsolePutString( char* str )
    }
 }
 
-void UG_ConsoleClear() {
-    gui->console.x_pos = gui->console.x_start;
-    gui->console.y_pos = gui->console.y_start;
-    UG_FillFrame(gui->console.x_start,gui->console.y_start,gui->console.x_end,gui->console.y_end,gui->console.back_color);
-}
-
 void UG_ConsoleSetArea( UG_S16 xs, UG_S16 ys, UG_S16 xe, UG_S16 ye )
 {
    gui->console.x_start = xs;

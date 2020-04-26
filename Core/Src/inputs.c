@@ -80,8 +80,6 @@ void inputs_check_inputs(void *p) {
     uint32_t currentState = (hmcp.intcap[1] << 24) | (hmcp.intcap[0] << 16) |
                             (hmcp1.intcap[1] << 8) | hmcp1.intcap[0];
 
-    println("mcp %u", currentState);
-
     // INTFLAG inverted
     // and then OR'ed with INT CAP
     // Only FLAG = 1 w/ CAP = 0 will remain 0

@@ -8,10 +8,16 @@
 #include <string.h>
 
 extern int sequencer_channel;
-QueueHandle_t xGUIMsgQueue;
 
 UG_GUI gui;
 ILI9341 ili9341;
+
+QueueHandle_t xGUIMsgQueue;
+struct GUIMsg
+{
+    uint8_t id;
+    char msg[20];
+};
 
 UG_RESULT gui_fill_frame_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
     ILI9341_Draw_Rectangle(&ili9341, x1, y1, x2+1, y2+1, c);
@@ -64,16 +70,22 @@ void gui_init() {
 }
 
 void gui_task(void *p) {
+  // Set up queue
+  xGUIMsgQueue = xQueueCreate( 10, sizeof( struct GUIMsg ) );
+  if(xGUIMsgQueue == NULL) {
+    println("Failed to allocate xGUIMsgQueue");
+  }
+
   // Set up GUI
   gui_init();
   int duration, start;
 
   UG_ConsoleSetArea(0,0,320,240);
-  UG_FontSelect( &FONT_8X14 ) ;
-  UG_FontSetHSpace( 0 ) ;
+  UG_FontSelect( &FONT_12X16 ) ;
 
   UG_ConsoleSetBackcolor( C_BLACK ) ;
   UG_ConsoleSetForecolor( C_WHITE ) ;
+  UG_ConsolePutString("Samples\r\n");
 
   while (1) {
     duration = HAL_GetTick() - start;
@@ -84,27 +96,9 @@ void gui_task(void *p) {
         struct GUIMsg pxRxedMessage;
         if( xQueueReceive( xGUIMsgQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
         {
-            // Process markup
-            if(pxRxedMessage.markup == MARKUP_INVERT) {
-                UG_ConsoleSetBackcolor( C_WHITE );
-                UG_ConsoleSetForecolor( C_BLACK );
-            }
-            if(pxRxedMessage.markup == MARKUP_HEADING) {
-                UG_FontSelect( &FONT_12X16 ) ;
-            }
-            if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
-                UG_ConsoleClear();
-                continue;
-            }
 
             UG_ConsolePutString(pxRxedMessage.msg);
             UG_ConsolePutString("\r\n");
-
-            // Revert to normal
-            UG_ConsoleSetBackcolor( C_BLACK );
-            UG_ConsoleSetForecolor( C_WHITE );
-            UG_FontSelect( &FONT_8X14 ) ;
-            UG_FontSetVSpace( 0 ) ;
 
             nMessages--;
         }
@@ -245,17 +239,9 @@ void gui_draw_waveform(int track, int channel, int yPos) {
   }
 }
 
-void gui_console_reset() {
+void gui_print(char* str) {
     struct GUIMsg msg;
     msg.id = (HAL_GetTick() & 0xFF);
-    msg.markup = GUI_FLAG_CLEAR;
-    xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
-}
-
-void gui_print(char* str, uint8_t flags) {
-    struct GUIMsg msg;
-    msg.id = (HAL_GetTick() & 0xFF);
-    msg.markup = flags;
     strcpy(msg.msg, str);
     xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
 }
