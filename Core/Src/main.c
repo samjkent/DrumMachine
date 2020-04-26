@@ -10,7 +10,6 @@
 #include "ili9341.h"
 #include "iwdg.h"
 #include "keypad.h"
-#include "file_manager.h"
 #include "quadspi.h"
 #include "rtc.h"
 #include "sample_manager.h"
@@ -42,6 +41,9 @@ FATFS SDFatFs;
 FIL file;
 extern Diskio_drvTypeDef SD_Driver;
 char SDPath[4];
+
+void attempt_fmount();
+FRESULT scan_files(char* path);
 
 AUDIO_DrvTypeDef *audio_drv;
 
@@ -100,10 +102,6 @@ void WM8894_Init() {
 
 void blinky(void *p) {
   // General task thread
-  vTaskDelay(1000 / portTICK_PERIOD_MS);
-  attempt_fmount();
-  scan_files();
-  file_manager_draw();
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }
@@ -226,6 +224,89 @@ void format_disk() {
     f_mount(0, "", 0);
 }
 
+FRESULT scan_files (
+    char* path        /* Start node to be scanned (***also used as work area***) */
+)
+{
+    FRESULT res;
+    DIR dir;
+    UINT i;
+    static FILINFO fno;
+
+    println("print files: \r\n");
+
+    res = f_mount(&SDFatFs, SDPath, 1);
+
+    res = f_opendir(&dir, path);                       /* Open the directory */
+    if (res == FR_OK) {
+        for (;;) {
+            res = f_readdir(&dir, &fno);                   /* Read a directory item */
+            if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+            if (fno.fattrib & AM_DIR) {                    /* It is a directory */
+                println("dir");
+            } else {                                       /* It is a file. */
+                gui_print(fno.fname);
+                //println("%s/%s", path, fno.fname);
+            }
+        }
+        f_closedir(&dir);
+    }
+
+    return res;
+}
+
+void attempt_fmount() {
+    FRESULT retSD;
+    FIL fil;            /* File object */
+    UINT br, bw;         /* File read/write count */
+
+    retSD = f_mount(&SDFatFs, SDPath, 1);
+
+    HAL_SD_CardInfoTypeDef card_info;
+    BSP_SD_GetCardInfo(&card_info);
+
+    if(retSD == 0) {
+        retSD = f_open (
+            &fil,
+            "test.txt",
+            FA_OPEN_APPEND | FA_WRITE | FA_READ
+        );
+    } else {
+        println("f_mount failed %d", retSD); 
+    }
+
+    /* Write a message 
+    retSD = f_lseek(&fil, f_size(&fil));
+    char test[] = "sam kent was here\r\n"; 
+    retSD = f_write(&fil, &test, sizeof test, &bw);
+    if (bw != (sizeof test)) {
+        println("failed writing %d\r\n", bw);
+        println("error: %d \r\n", retSD); 
+    }
+    */
+
+
+    f_lseek(&fil, 0);
+    char line[100]; /* Line buffer */
+    /* Read every line and display it */
+    while (f_gets(line, sizeof line, &fil)) {
+        printf(line);
+    }
+    /* Close the file */
+    retSD = f_close(&fil);
+    
+    if(retSD != 0) {
+        println("f_close failed: %d", retSD);
+    } else {
+        println("file closed successfully");
+    }
+
+    /* Unregister work area 
+    */
+    f_mount(0, "", 0);
+    
+}
+
 int main(void) {
   HAL_Init();
   SystemClock_Config();
@@ -275,16 +356,17 @@ int main(void) {
     Error_Handler();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 3, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
-  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 1024, NULL, 5, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 64, NULL, 8, NULL);
+  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 1024, NULL, 6, NULL);
+  // xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 8, NULL);
   xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
  
   uint8_t ret;
-  sprintf(SDPath, "0:");
+  sprintf(SDPath, "0:/");
   ret = FATFS_LinkDriver(&SD_Driver, SDPath);
   printf("FATFS_LinkDriver() returns %d \r\n", ret);
+
 
   /* Start scheduler */
   println("osKernelStart()");
