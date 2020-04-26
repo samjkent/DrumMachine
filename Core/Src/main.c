@@ -111,9 +111,6 @@ void blinky(void *p) {
   attempt_fmount();
   scan_files();
   file_manager_draw();
-
-  debug_ram_samples();
-
   while (1) {
     vTaskDelay(200 / portTICK_PERIOD_MS);
   }

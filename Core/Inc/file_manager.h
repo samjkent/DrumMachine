@@ -3,6 +3,7 @@
 #define MAX_DIRECTORY_FILES 256
 #define SDRAM_OFFSET 10
 
+
 FATFS SDFatFs;
 FIL file;
 extern Diskio_drvTypeDef SD_Driver;
