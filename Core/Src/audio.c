@@ -39,13 +39,7 @@ void audio_task(void *p) {
   while (1) {
     ulNotificationValue = ulTaskNotifyTake(pdTRUE, 2 / portTICK_PERIOD_MS);
 
-    // Generate samples
-    if (UpdatePointer != -1) {
-      int pos = UpdatePointer;
-      UpdatePointer = -1;
-
-
-      /*
+     /*
       for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
         SaiBufferSample = 0x00;
 
@@ -68,7 +62,6 @@ void audio_task(void *p) {
         // Error_Handler();
       }
 
-  }
   }
 }
 

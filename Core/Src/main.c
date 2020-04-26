@@ -27,9 +27,11 @@
 #include <math.h>
 
 #include "stm32f769i_discovery_sd.h"
+#include "stm32f769i_discovery_qspi.h"
 
 /* Private variables ---------------------------------------------------------*/
 #define ADC_BUFF_SIZE 30 
+#define NUM_OF_CHANNELS 8
 
 FATFS SDFatFs;
 FIL file;
@@ -66,6 +68,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         // Button on reverse of STM32 DISCO board
   }
 }
+
 
 void blinky(void *p) {
   // General task thread
@@ -174,6 +177,8 @@ int main(void) {
   
   ws2812b_init();
 
+  BSP_QSPI_Init();
+
   MX_ADC1_Init();
   MX_ADC3_Init();
   if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer_1), ADC_BUFF_SIZE) != HAL_OK) {
@@ -188,7 +193,7 @@ int main(void) {
   MX_FREERTOS_Init();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 3, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
   xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);

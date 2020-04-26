@@ -1,6 +1,8 @@
 #include "ff_gen_drv.h"
 
 #define MAX_DIRECTORY_FILES 256
+#define SDRAM_OFFSET 10
+
 
 FATFS SDFatFs;
 FIL file;
@@ -15,6 +17,7 @@ void file_manager_select();
 void file_manager_directory_up();
 void file_manager_directory_dec();
 void file_manager_directory_inc();
+void file_manager_draw();
 void file_manager_load();
 
 

@@ -25,4 +25,3 @@ void audio_task(void *p);
 void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai);
 
 void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai);
-
