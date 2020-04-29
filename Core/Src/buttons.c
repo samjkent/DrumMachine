@@ -1,5 +1,4 @@
 #include "buttons.h"
-
 #include "audio_channel.h"
 #include "i2c.h"
 #include "MCP23017.h"

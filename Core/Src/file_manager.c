@@ -4,15 +4,15 @@
 #include "ff.h"
 #include "stm32f769i_discovery_qspi.h"
 #include "audio_channel.h"
+#include "sample_manager.h"
+
+#include <string.h>
 
 extern uint8_t sequencer_channel;
 
 char current_path[30];
 uint8_t current_index;
 uint8_t max_index;
-
-void attempt_fmount();
-FRESULT scan_files();
 
 FRESULT scan_files () {
     FRESULT res;
@@ -132,8 +132,15 @@ void file_manager_load() {
     BSP_QSPI_Init();
 
     while(br == sizeof buffer) { 
+        // Read from SD and put into RAM
         f_read(&fil, buffer, sizeof buffer, &br);
         BSP_QSPI_Write(&buffer, (SDRAM_OFFSET * sequencer_channel) + (512 * block), sizeof buffer);
+
+        // Block 0 contains WAVE header
+        if(!block) {
+            memcpy(&sequencer[sequencer_channel].header, &buffer, 42);
+        }
+
         block++;
     }
 

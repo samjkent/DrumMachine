@@ -2,6 +2,7 @@
  * audio.c
  */
 #include "audio.h"
+int16_t qspi_read_buffer[PLAY_BUFF_SIZE / 2];
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 volatile int UpdatePointer = -1;
 
@@ -39,7 +40,27 @@ void audio_task(void *p) {
   while (1) {
     ulNotificationValue = ulTaskNotifyTake(pdTRUE, 2 / portTICK_PERIOD_MS);
 
-     /*
+    // Generate samples
+    if (UpdatePointer != -1) {
+      int pos = UpdatePointer;
+      UpdatePointer = -1;
+        
+      for(int n = 0;  n < (PLAY_BUFF_SIZE / 2); n++) {
+            SaiBuffer[pos + n] = 0;
+      }
+
+      for(int channel = 0; channel < NUM_OF_CHANNELS; channel++) {
+        if((sequencer[channel].sample_progress * sizeof qspi_read_buffer) < sequencer[channel].sample_length) {
+            BSP_QSPI_Read (&qspi_read_buffer, 42 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * (sizeof qspi_read_buffer)), PLAY_BUFF_SIZE);
+            sequencer[channel].sample_progress++;
+
+            for(int sample = 0; sample < (PLAY_BUFF_SIZE / 2); sample++) {
+                SaiBuffer[pos + sample] += qspi_read_buffer[sample];
+            }
+        }
+      }
+
+      /*
       for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
         SaiBufferSample = 0x00;
 
@@ -62,6 +83,7 @@ void audio_task(void *p) {
         // Error_Handler();
       }
 
+  }
   }
 }
 

@@ -6,6 +6,7 @@
 #endif
 
 #include "main.h"
+#include "wav.h"
 
 #define SAMPLE_RATE 48000
 
@@ -23,6 +24,8 @@ struct audio_channel {
     float  release;
 
     float  adsr_current;
+
+    struct wav header;
 
 } audio_channel;
 

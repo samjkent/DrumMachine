@@ -6,6 +6,7 @@
 #include "sai.h"
 #include "sample_manager.h"
 #include "wm8994.h"
+#include "file_manager.h"
 
 #define PLAY_BUFF_SIZE 256
 #define NUM_OF_CHANNELS 8
