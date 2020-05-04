@@ -42,8 +42,6 @@ enum modes { SEQUENCER, SELECTOR, LIVE };
 
 uint8_t mode = SEQUENCER;
 
-extern TaskHandle_t xTaskToNotify_buttons_read;
-
 extern uint8_t sequencer_channel;
 
 uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
@@ -58,12 +56,7 @@ void MX_FREERTOS_Init(void);
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   if (GPIO_Pin == GPIO_PIN_6 || GPIO_Pin == GPIO_PIN_8) {
-    if (xTaskToNotify_buttons_read != NULL) {
-      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-      vTaskNotifyGiveFromISR(xTaskToNotify_buttons_read, &xHigherPriorityTaskWoken);
-      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-
+        buttons_notify();
   } else if (GPIO_Pin == GPIO_PIN_0) {
         // Button on reverse of STM32 DISCO board
   }
