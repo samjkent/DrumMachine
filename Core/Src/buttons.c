@@ -12,6 +12,8 @@ MCP23017_HandleTypeDef hmcp1;
 uint8_t enc1;
 uint8_t enc1_prev;
 
+static TaskHandle_t xTaskToNotify_buttons_read = NULL;
+
 extern uint8_t sequencer_channel;
 
 void buttons_init() {
@@ -200,3 +202,12 @@ void buttons_toggle(uint8_t n) {
         println("%i on", n);
     }
 }
+    
+void buttons_notify() {
+    if(xTaskToNotify_buttons_read != NULL) {
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      vTaskNotifyGiveFromISR(xTaskToNotify_buttons_read, &xHigherPriorityTaskWoken);
+      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+
