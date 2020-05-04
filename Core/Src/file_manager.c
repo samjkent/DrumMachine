@@ -2,13 +2,17 @@
 #include "gui.h"
 #include "ff_gen_drv.h"
 #include "ff.h"
+#include "stm32f769i_discovery_qspi.h"
+#include "audio_channel.h"
+#include "sample_manager.h"
+
+#include <string.h>
+
+extern uint8_t sequencer_channel;
 
 char current_path[30];
 uint8_t current_index;
 uint8_t max_index;
-
-void attempt_fmount();
-FRESULT scan_files();
 
 FRESULT scan_files () {
     FRESULT res;
@@ -54,12 +58,12 @@ void file_manager_draw() {
     gui_print(title, MARKUP_HEADING);
     for(uint8_t i = current_index; (i < current_index + 15) && (i < (max_index)); i++) {
         if(directory[i].fname == 0) break;
-        char fname[30];
+        char fname[256];
         sprintf(&fname, "%s", directory[i].fname);
         if(directory[i].fattrib == AM_DIR) {
             sprintf(&fname, "%s/", fname);
         } else {
-            sprintf(&fname, "%s   %ukB", fname, (int)(directory[i].fsize/1024));
+            sprintf(&fname, "%s", fname);
         }
         gui_print(fname, (i == current_index ? MARKUP_INVERT : MARKUP_NONE));
     }
@@ -110,8 +114,11 @@ void file_manager_directory_up() {
 
 void file_manager_load() {
     FIL fil;        /* File object */
-    char line[100]; /* Line buffer */
+    BYTE buffer[512];   /* file copy buffer */
     FRESULT fr;     /* FatFs return code */
+    UINT br = 512;
+    int block = 0;
+    int ret;
 
     char path[256];
     sprintf(&path, "%s/%s", current_path, directory[current_index].fname);
@@ -123,10 +130,43 @@ void file_manager_load() {
         return (int)fr;
     }
 
-    /* Read every line and display it */
-    while (f_gets(line, sizeof line, &fil)) {
-        println("%s", line);
+    uint8_t mute = 1;
+    memcpy(&sequencer[sequencer_channel].mute, &mute, 1);
+  
+    while(br == sizeof buffer) { 
+        // Read from SD and put into RAM
+        f_read(&fil, buffer, sizeof buffer, &br);
+
+        // Write page
+        uint32_t address = (SDRAM_OFFSET * sequencer_channel) + (512 * block);
+
+        // Clear page before writing
+        if((address % 0x1000) == 0) {
+            ret = BSP_QSPI_Erase_Block(address);
+            if(ret != QSPI_OK) println("Erase failed: %u Page: %lu", ret, address);
+        }
+
+        ret = BSP_QSPI_Write(&buffer, address, sizeof buffer);
+        if(ret != QSPI_OK) println("Write failed: %u Page: %u", ret, address);
+
+        // Block 0 contains WAVE header
+        if(!block) {
+            memcpy(&sequencer[sequencer_channel].header, &buffer, 44);
+            char data[4];
+            memcpy(&data, sequencer[sequencer_channel].header.SubChunk2ID, 4);
+            if(data[0] != 0x64 && data[1] != 0x61 && data[2] != 0x74 && data[3] != 0x61) {
+                println("Missing data chunk.");
+                // Skip to next
+                memcpy(&sequencer[sequencer_channel].header.SubChunk2ID, &buffer[44 + sequencer[sequencer_channel].header.Subchunk2Size], 8);
+            }
+            memcpy(&sequencer[sequencer_channel].sample_progress, &sequencer[sequencer_channel].header.Subchunk2Size, 4);
+        }
+
+        block++;
     }
+    
+    mute = 0;
+    memcpy(&sequencer[sequencer_channel].mute, &mute, 1);
 
     println("Finished reading");
     gui_console_reset();

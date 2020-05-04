@@ -1,5 +1,4 @@
 #include "buttons.h"
-
 #include "audio_channel.h"
 #include "i2c.h"
 #include "MCP23017.h"
@@ -194,8 +193,10 @@ void buttons_toggle(uint8_t n) {
     if((sequencer[sequencer_channel].note_on >> n) & 0x01) {
         ws2812b_set_pixel(n, 0x000000, 0x00FF00);
         sequencer[sequencer_channel].note_on &= ~(1 << n);
+        println("%i off", n);
     } else {
         ws2812b_set_pixel(n, 0x000F00, 0x00FF00);
         sequencer[sequencer_channel].note_on |= (1 << n);
+        println("%i on", n);
     }
 }

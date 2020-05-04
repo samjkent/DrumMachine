@@ -22,9 +22,11 @@ void gui_console_reset();
 
 void gui_print(char* string, uint8_t flags);
 
+void gui_draw_text(char* string, int x, int y, int f, int b);
+
 struct GUIMsg
 {
     uint8_t id;
     char markup;
-    char msg[30];
+    char msg[256];
 };

@@ -1,7 +1,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
-#include "audio_channel.h"
+#include "audio.h"
 #include "buttons.h"
 #include "cmsis_os.h"
 #include "dma.h"
@@ -13,8 +13,6 @@
 #include "file_manager.h"
 #include "quadspi.h"
 #include "rtc.h"
-#include "sample_manager.h"
-#include "sai.h"
 #include "sdmmc.h"
 #include "ff_gen_drv.h"
 #include "ff.h"
@@ -23,27 +21,22 @@
 #include "stm32f7xx_hal.h"
 #include "tim.h"
 #include "usart.h"
-#include "wm8994.h"
 #include "ws2812b.h"
 #include "wwdg.h"
 #include "gui.h"
 #include <math.h>
 
 #include "stm32f769i_discovery_sd.h"
+#include "stm32f769i_discovery_qspi.h"
 
 /* Private variables ---------------------------------------------------------*/
-#define PLAY_BUFF_SIZE 256
-
 #define ADC_BUFF_SIZE 30 
-
 #define NUM_OF_CHANNELS 8
 
 FATFS SDFatFs;
 FIL file;
 extern Diskio_drvTypeDef SD_Driver;
 char SDPath[4];
-
-AUDIO_DrvTypeDef *audio_drv;
 
 enum modes { SEQUENCER, SELECTOR, LIVE };
 
@@ -53,20 +46,12 @@ extern TaskHandle_t xTaskToNotify_buttons_read;
 
 extern uint8_t sequencer_channel;
 
-int16_t SaiBuffer[PLAY_BUFF_SIZE];
-int16_t SaiBufferSample = 0x0;
-
 uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
 uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
-
-volatile int UpdatePointer = -1;
-uint32_t playProgress;
 
 int current_step = 0;
 
 volatile uint8_t retVal;
-
-TaskHandle_t xAudioBufferManager;
 
 void SystemClock_Config(void);
 void MX_FREERTOS_Init(void);
@@ -84,19 +69,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   }
 }
 
-void WM8894_Init() {
-  /* Initialize audio driver */
-  if (WM8994_ID != wm8994_drv.ReadID(AUDIO_I2C_ADDRESS)) {
-    Error_Handler();
-  }
-
-  audio_drv = &wm8994_drv;
-  audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50,
-                           AUDIO_FREQUENCY_22K)) {
-    Error_Handler();
-  }
-}
 
 void blinky(void *p) {
   // General task thread
@@ -109,14 +81,18 @@ void blinky(void *p) {
   }
 }
 
+#define portTICK_PERIOD_US			( ( TickType_t ) 1000000 / configTICK_RATE_HZ )
 void semiquaver(void *p) {
   TickType_t xLastWakeTime;
+  portTASK_USES_FLOATING_POINT();
+  
+  int bpm = ((60.0/87.0)/4.0)*1000000;
 
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
 
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, (114) / portTICK_PERIOD_MS); // 117 = 128 bpm
+    vTaskDelayUntil(&xLastWakeTime,  bpm / portTICK_PERIOD_US); // 117 = 128 bpm
 
     for (int i = 0; i < NUM_OF_CHANNELS; i++) {
       if (sequencer[i].note_on & (1 << current_step))
@@ -143,51 +119,6 @@ void semiquaver(void *p) {
     }
   }
 }
-
-void audioBufferManager(void *p) {
-  portTASK_USES_FLOATING_POINT();
-
-  while (1) {
-    // Generate samples
-    if (UpdatePointer != -1) {
-      int pos = UpdatePointer;
-      UpdatePointer = -1;
-
-      for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
-        SaiBufferSample = 0x00;
-
-        for (int i = 0; i < NUM_OF_CHANNELS; i++) {
-          if (sequencer[i].sample_progress < sequencer[i].sample_length) {
-            int16_t sample =
-                (*(uint16_t *)((uint32_t)sequencer[i].sample_start +
-                               (uint32_t)sequencer[i].sample_progress));
-            SaiBufferSample += (int16_t)((sample)*sequencer_get_adsr(i));
-            sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
-          }
-        }
-
-        SaiBuffer[pos + i] = SaiBufferSample;
-      }
-
-      if (UpdatePointer != -1) {
-        // Error_Handler();
-      }
-    } else {
-      // Tasks if we're not updating samples
-      for (int j = 0; j < NUM_OF_CHANNELS; j++) {
-        sequencer_calc_adsr(j);
-      }
-    }
-
-    vTaskDelay(1 / portTICK_PERIOD_MS);
-  }
-}
-
-void HAL_SAI_TxCpltCallback(SAI_HandleTypeDef *hsai) {
-  UpdatePointer = PLAY_BUFF_SIZE / 2;
-}
-
-void HAL_SAI_TxHalfCpltCallback(SAI_HandleTypeDef *hsai) { UpdatePointer = 0; }
 
 void Delay(int counter) {
   while (counter--)
@@ -250,6 +181,8 @@ int main(void) {
   
   ws2812b_init();
 
+  BSP_QSPI_Init();
+
   MX_ADC1_Init();
   MX_ADC3_Init();
   if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer_1), ADC_BUFF_SIZE) != HAL_OK) {
@@ -262,24 +195,13 @@ int main(void) {
   
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
-  println("Audio Driver");
-
-  if (0 != audio_drv->Play(AUDIO_I2C_ADDRESS, NULL, 0)) {
-    Error_Handler();
-  }
-  println("SAI init");
-
-  retVal =
-      HAL_SAI_Transmit_DMA(&SaiHandle, (uint8_t *)SaiBuffer, PLAY_BUFF_SIZE);
-  if (HAL_OK != retVal)
-    Error_Handler();
 
   println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 3, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
-  xTaskCreate(audioBufferManager, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 256, NULL, 8, NULL);
+  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 15, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
-  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
+  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 8, NULL);
  
   uint8_t ret;
   sprintf(SDPath, "0:");

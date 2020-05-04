@@ -2,7 +2,7 @@
 #include "audio_channel.h"
 
 void sample_manager_init() {
-  sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x600, 0x7000);
+  sequencer_set_sample(0, AUDIO_FILE_ADDRESS + 0x42, 0x0);
   sequencer_set_adsr(0, 0.2, 1, 1, 2);
 
   sequencer_set_sample(1, AUDIO_FILE_ADDRESS + 0x15000, 0x8000);
