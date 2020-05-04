@@ -1,7 +1,7 @@
 #include "ff_gen_drv.h"
 
 #define MAX_DIRECTORY_FILES 256
-#define SDRAM_OFFSET 0x10000
+#define SDRAM_OFFSET 0xF0000
 
 
 FATFS SDFatFs;

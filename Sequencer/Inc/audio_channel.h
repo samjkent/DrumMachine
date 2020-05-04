@@ -27,6 +27,8 @@ struct audio_channel {
 
     struct wav header;
 
+    uint8_t mute;
+
 } audio_channel;
 
 struct audio_channel sequencer[10];

@@ -2,8 +2,9 @@
  * audio.c
  */
 #include "audio.h"
-int16_t qspi_read_buffer[PLAY_BUFF_SIZE / 2];
+int8_t qspi_read_buffer[PLAY_BUFF_SIZE];
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
+int16_t IntermediateSaiBuffer[PLAY_BUFF_SIZE/2];
 volatile int UpdatePointer = -1;
 
 void WM8894_Init() {
@@ -14,8 +15,8 @@ void WM8894_Init() {
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50,
-                           AUDIO_FREQUENCY_22K)) {
+  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 25,
+                           AUDIO_FREQUENCY_44K)) {
     Error_Handler();
   }
 }
@@ -37,8 +38,13 @@ void audio_task(void *p) {
   
   xTaskToNotify_audio_task = xTaskGetCurrentTaskHandle();
 
+  BSP_QSPI_Read(qspi_read_buffer, 0, 44);
+  memcpy(&sequencer[0].header, &qspi_read_buffer, 44);
+  memcpy(&sequencer[0].sample_progress, &sequencer[0].header.Subchunk2Size, 4);
+
   while (1) {
     ulNotificationValue = ulTaskNotifyTake(pdTRUE, 2 / portTICK_PERIOD_MS);
+    // vTaskDelay(2 / portTICK_PERIOD_MS);
 
     // Generate samples
     if (UpdatePointer != -1) {
@@ -48,35 +54,35 @@ void audio_task(void *p) {
       for(int n = 0;  n < (PLAY_BUFF_SIZE / 2); n++) {
             SaiBuffer[pos + n] = 0;
       }
+    
+      for(int channel = 0; channel < 8; channel++) {
 
-      for(int channel = 0; channel < NUM_OF_CHANNELS; channel++) {
-        if((sequencer[channel].sample_progress * sizeof qspi_read_buffer) < sequencer[channel].sample_length) {
-            BSP_QSPI_Read (&qspi_read_buffer, 42 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * (sizeof qspi_read_buffer)), PLAY_BUFF_SIZE);
-            sequencer[channel].sample_progress++;
+        // Skip mutes
+        if(sequencer[channel].mute) continue;
 
-            for(int sample = 0; sample < (PLAY_BUFF_SIZE / 2); sample++) {
-                SaiBuffer[pos + sample] += qspi_read_buffer[sample];
+        // Check channel sample rate and bits per sample
+        // 44.1 kHz vs 22.05 kHz
+        // 8 bps vs 16 vs 24
+        // Calculate how much data to read from QSPI to fill PLAY_BUFF_SIZE / 2
+        if(sequencer[channel].header.NumChannels == 2) {
+            if((sequencer[channel].sample_progress * PLAY_BUFF_SIZE) >= sequencer[channel].header.Subchunk2Size) continue;
+            BSP_QSPI_Read(qspi_read_buffer, 44 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * PLAY_BUFF_SIZE), PLAY_BUFF_SIZE);
+            memcpy(&IntermediateSaiBuffer, &qspi_read_buffer, PLAY_BUFF_SIZE );
+            for(int i = 0; i < (PLAY_BUFF_SIZE / 2); i++) {
+                SaiBuffer[pos + i] += 0.3 * IntermediateSaiBuffer[i];
             }
+            sequencer[channel].sample_progress++;
+        } else if(sequencer[channel].header.NumChannels == 1) {
+            if((sequencer[channel].sample_progress * (PLAY_BUFF_SIZE/2)) >= sequencer[channel].header.Subchunk2Size) continue;
+            BSP_QSPI_Read(qspi_read_buffer, 44 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * (PLAY_BUFF_SIZE / 2)), PLAY_BUFF_SIZE / 2);
+            memcpy(&IntermediateSaiBuffer, &qspi_read_buffer, PLAY_BUFF_SIZE / 2 );
+            for(int i = (PLAY_BUFF_SIZE / 4); i > 0; i--) {
+                SaiBuffer[pos + (2 * i)] += 0.3 * IntermediateSaiBuffer[i];
+                SaiBuffer[pos + (2 * i) + 1] += 0.3 * IntermediateSaiBuffer[i];
+            }
+            sequencer[channel].sample_progress++;
         }
       }
-
-      /*
-      for (int i = 0; i < PLAY_BUFF_SIZE / 2; i++) {
-        SaiBufferSample = 0x00;
-
-        for (int i = 0; i < NUM_OF_CHANNELS; i++) {
-          if (sequencer[i].sample_progress < sequencer[i].sample_length) {
-            int16_t sample =
-                (*(uint16_t *)((uint32_t)sequencer[i].sample_start +
-                               (uint32_t)sequencer[i].sample_progress));
-            SaiBufferSample += (int16_t)((sample)*sequencer_get_adsr(i));
-            sequencer[i].sample_progress = sequencer[i].sample_progress + 4;
-          }
-        }
-
-        SaiBuffer[pos + i] = SaiBufferSample;
-      }
-      */
 
       if (UpdatePointer != -1) {
         println("audio task too slow");

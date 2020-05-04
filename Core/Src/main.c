@@ -81,14 +81,18 @@ void blinky(void *p) {
   }
 }
 
+#define portTICK_PERIOD_US			( ( TickType_t ) 1000000 / configTICK_RATE_HZ )
 void semiquaver(void *p) {
   TickType_t xLastWakeTime;
+  portTASK_USES_FLOATING_POINT();
+  
+  int bpm = ((60.0/87.0)/4.0)*1000000;
 
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
 
   while (1) {
-    vTaskDelayUntil(&xLastWakeTime, (114) / portTICK_PERIOD_MS); // 117 = 128 bpm
+    vTaskDelayUntil(&xLastWakeTime,  bpm / portTICK_PERIOD_US); // 117 = 128 bpm
 
     for (int i = 0; i < NUM_OF_CHANNELS; i++) {
       if (sequencer[i].note_on & (1 << current_step))
@@ -194,10 +198,10 @@ int main(void) {
 
   println("xTaskCreate");
   xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 32, NULL, 8, NULL);
-  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 6, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 256, NULL, 8, NULL);
+  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 15, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
-  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 15, NULL);
+  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 8, NULL);
  
   uint8_t ret;
   sprintf(SDPath, "0:");

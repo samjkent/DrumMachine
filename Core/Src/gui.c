@@ -49,8 +49,8 @@ void gui_init() {
   ili9341.rst_gpio_base = GPIOH;
   ili9341.rst_gpio_pin = GPIO_PIN_6;
 
-  ili9341.screen_height = 320;
-  ili9341.screen_width = 240;
+  ili9341.screen_height = 240;
+  ili9341.screen_width = 320;
   
   ILI9341_SPI_Init(&ili9341);
   ILI9341_Init(&ili9341);
@@ -112,14 +112,6 @@ void gui_task(void *p) {
 
             ILI9341_Draw_Text(&ili9341, pxRxedMessage.msg, 0, y, f, 2, b);
             y += 16;
-            // UG_ConsolePutString(pxRxedMessage.msg);
-            // UG_ConsolePutString("\r\n");
-
-            // Revert to normal
-            // UG_ConsoleSetBackcolor( C_BLACK );
-            // UG_ConsoleSetForecolor( C_WHITE );
-            // UG_FontSelect( &FONT_8X14 ) ;
-            // UG_FontSetVSpace( 0 ) ;
 
             nMessages--;
         }
