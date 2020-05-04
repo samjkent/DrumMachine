@@ -24,6 +24,8 @@ void gui_print(char* string, uint8_t flags);
 
 void gui_draw_text(char* string, int x, int y, int f, int b);
 
+ILI9341 ili9341;
+
 struct GUIMsg
 {
     uint8_t id;

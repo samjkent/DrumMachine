@@ -1,7 +1,7 @@
 #include "gui.h"
 #include "spi.h"
 #include "ili9341_gfx.h"
-#include "ugui.h"
+#include "ui.h"
 #include "audio_channel.h"
 
 #include <stdio.h>
@@ -10,29 +10,7 @@
 extern int sequencer_channel;
 QueueHandle_t xGUIMsgQueue;
 
-// UG_GUI gui;
-ILI9341 ili9341;
 int y;
-
-UG_RESULT gui_fill_frame_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
-    ILI9341_Draw_Rectangle(&ili9341, x1, y1, x2+1, y2+1, c);
-    return UG_RESULT_OK;
-}
-
-UG_RESULT gui_draw_line_hw(UG_S16 x1 , UG_S16 y1 , UG_S16 x2 , UG_S16 y2 , UG_COLOR c) {
-    if( y1 == y2 ) {
-        ILI9341_Draw_Horizontal_Line(&ili9341, x1, y1, (x2-x1), c);
-    } else if( x1 == x2 ) {
-        ILI9341_Draw_Vertical_Line(&ili9341, x1, y1, (y2-y1), c);
-    } else {
-        return UG_RESULT_FAIL;
-    }
-    return UG_RESULT_OK;
-}
-
-void p(UG_S16 x, UG_S16 y, UG_COLOR c) {
-      ILI9341_Draw_Pixel(&ili9341, x, y, c);
-}
 
 void gui_init() {
   // Init Display Driver
@@ -57,13 +35,6 @@ void gui_init() {
 
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
 
-  // UGUI
-  /*
-  UG_Init(&gui , p, 320, 240 );
-  UG_DriverRegister( DRIVER_FILL_FRAME,(void*)gui_fill_frame_hw);
-  UG_DriverRegister( DRIVER_DRAW_LINE,(void*)gui_draw_line_hw);
-  */
-
 }
 
 void gui_task(void *p) {
@@ -72,13 +43,6 @@ void gui_task(void *p) {
   int duration, start;
                 
   ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
-
-  // UG_ConsoleSetArea(0,0,320,240);
-  // UG_FontSelect( &FONT_8X14 ) ;
-  // UG_FontSetHSpace( 0 ) ;
-
-  // UG_ConsoleSetBackcolor( C_BLACK ) ;
-  // UG_ConsoleSetForecolor( C_WHITE ) ;
 
   while (1) {
     duration = HAL_GetTick() - start;
@@ -110,7 +74,7 @@ void gui_task(void *p) {
                 ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
             } 
 
-            ILI9341_Draw_Text(&ili9341, pxRxedMessage.msg, 0, y, f, 2, b);
+            ui_draw_string(pxRxedMessage.msg, 0, 0, y);
             y += 16;
 
             nMessages--;
