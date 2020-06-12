@@ -44,8 +44,8 @@ uint8_t mode = SEQUENCER;
 
 extern uint8_t sequencer_channel;
 
-uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
-uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
+volatile uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
+volatile uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
 
 int current_step = 0;
 
@@ -70,7 +70,8 @@ void blinky(void *p) {
   scan_files();
   file_manager_draw();
   while (1) {
-    vTaskDelay(200 / portTICK_PERIOD_MS);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    println("%u %u %u %u %u %u", ADCBuffer_1[0], ADCBuffer_1[1], ADCBuffer_1[2], ADCBuffer_3[0], ADCBuffer_3[1], ADCBuffer_3[2]);
   }
 }
 

@@ -141,8 +141,8 @@ void file_manager_load() {
         uint32_t address = (SDRAM_OFFSET * sequencer_channel) + (512 * block);
 
         // Clear page before writing
-        if((address % 0x1000) == 0) {
-            ret = BSP_QSPI_Erase_Block(address);
+        if((address % 0x10000) == 0) {
+            ret = BSP_QSPI_Erase_Sector(address);
             if(ret != QSPI_OK) println("Erase failed: %u Page: %lu", ret, address);
         }
 

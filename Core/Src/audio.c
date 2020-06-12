@@ -2,6 +2,7 @@
  * audio.c
  */
 #include "audio.h"
+extern volatile uint16_t ADCBuffer_1[30];
 int8_t qspi_read_buffer[PLAY_BUFF_SIZE];
 int16_t SaiBuffer[PLAY_BUFF_SIZE];
 int16_t IntermediateSaiBuffer[PLAY_BUFF_SIZE/2];
@@ -15,7 +16,7 @@ void WM8894_Init() {
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 25,
+  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 30,
                            AUDIO_FREQUENCY_44K)) {
     Error_Handler();
   }
@@ -66,7 +67,11 @@ void audio_task(void *p) {
         // Calculate how much data to read from QSPI to fill PLAY_BUFF_SIZE / 2
         if(sequencer[channel].header.NumChannels == 2) {
             if((sequencer[channel].sample_progress * PLAY_BUFF_SIZE) >= sequencer[channel].header.Subchunk2Size) continue;
-            BSP_QSPI_Read(qspi_read_buffer, 44 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * PLAY_BUFF_SIZE), PLAY_BUFF_SIZE);
+            BSP_QSPI_Read(
+                    qspi_read_buffer, 
+                    44 + (channel * SDRAM_OFFSET) + (4 * ADCBuffer_1[0]) + (sequencer[channel].sample_progress * (2 * (int16_t)(ADCBuffer_1[1] / 16))),
+                    PLAY_BUFF_SIZE
+            );
             memcpy(&IntermediateSaiBuffer, &qspi_read_buffer, PLAY_BUFF_SIZE );
             for(int i = 0; i < (PLAY_BUFF_SIZE / 2); i++) {
                 SaiBuffer[pos + i] += 0.3 * IntermediateSaiBuffer[i];
@@ -74,7 +79,7 @@ void audio_task(void *p) {
             sequencer[channel].sample_progress++;
         } else if(sequencer[channel].header.NumChannels == 1) {
             if((sequencer[channel].sample_progress * (PLAY_BUFF_SIZE/2)) >= sequencer[channel].header.Subchunk2Size) continue;
-            BSP_QSPI_Read(qspi_read_buffer, 44 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * (PLAY_BUFF_SIZE / 2)), PLAY_BUFF_SIZE / 2);
+            BSP_QSPI_Read(qspi_read_buffer, 44 + (channel * SDRAM_OFFSET) + (sequencer[channel].sample_progress * ((PLAY_BUFF_SIZE / 2) - 400)), PLAY_BUFF_SIZE / 2);
             memcpy(&IntermediateSaiBuffer, &qspi_read_buffer, PLAY_BUFF_SIZE / 2 );
             for(int i = (PLAY_BUFF_SIZE / 4); i > 0; i--) {
                 SaiBuffer[pos + (2 * i)] += 0.3 * IntermediateSaiBuffer[i];
