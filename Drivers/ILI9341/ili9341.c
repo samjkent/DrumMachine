@@ -391,6 +391,23 @@ void ILI9341_Draw_Colour_Burst(volatile ILI9341* display, uint16_t Colour, uint3
     HAL_GPIO_WritePin(display->cs_gpio_base, display->cs_gpio_pin, GPIO_PIN_SET);
 }
 
+uint8_t chunk = 0;
+void ILI9341_StartDMA(volatile ILI9341* display, uint8_t* buffer_p) {
+    if(chunk == 4) {
+        chunk = 0;
+    }
+
+    if(chunk == 0)
+        ILI9341_Set_Address(display, 0, 0, display->screen_width, display->screen_height);
+
+    // Data
+    HAL_GPIO_WritePin(display->cs_gpio_base, display->cs_gpio_pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(display->dc_gpio_base, display->dc_gpio_pin, GPIO_PIN_SET);
+    HAL_SPI_Transmit_DMA(display->hspi, buffer_p + (chunk*38400), 38400);
+
+    chunk++;
+}
+
 //FILL THE ENTIRE SCREEN WITH SELECTED COLOUR (either #define-d ones or custom 16bit)
 /*Sets address (entire screen) and Sends Height*Width amount of colour information to LCD*/
 void ILI9341_Fill_Screen(volatile ILI9341* display, uint16_t Colour)

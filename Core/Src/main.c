@@ -191,6 +191,7 @@ int main(void) {
 
   println("xTaskCreate");
   xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
+  xTaskCreate(gui_display_thread, (char *)"Screen Update Thread", 256, NULL, 8, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 256, NULL, 8, NULL);
   xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 15, NULL);
   xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);

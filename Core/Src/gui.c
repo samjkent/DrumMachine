@@ -10,9 +10,12 @@
 extern int sequencer_channel;
 QueueHandle_t xGUIMsgQueue;
 
+uint16_t buffer[240][320];
+
 int y;
 
-void gui_init() {
+void gui_display_thread(void *p) {
+
   // Init Display Driver
   ILI9341_Struct_Reset(&ili9341);
 
@@ -35,14 +38,15 @@ void gui_init() {
 
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
 
+  while (1) {
+    vTaskDelay(12 / portTICK_PERIOD_MS);
+  }
 }
 
 void gui_task(void *p) {
   // Set up GUI
-  gui_init();
   int duration, start;
-                
-  ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+  int n = 0;  
 
   while (1) {
     duration = HAL_GetTick() - start;
@@ -66,12 +70,12 @@ void gui_task(void *p) {
             }
             if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
                 y = 0;
-                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+                ui_fill_screen(GUI_BACKGROUND_COLOUR);
                 continue;
             }
             if(pxRxedMessage.markup == MARKUP_ALERT) {
                 y = 0;
-                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+                ui_fill_screen(GUI_BACKGROUND_COLOUR);
             } 
 
             ui_draw_string(pxRxedMessage.msg, 0, 0, y);
@@ -79,13 +83,16 @@ void gui_task(void *p) {
 
             nMessages--;
         }
+      
     } 
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    ILI9341_StartDMA(&ili9341, (uint8_t *)buffer);
+    vTaskDelay(12 / portTICK_PERIOD_MS);
   }
 }
 
 /*
+
 void gui_task(void *p) {
   // Init screen
   ILI9341_Struct_Reset(&ili9341);

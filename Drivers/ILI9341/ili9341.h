@@ -148,6 +148,8 @@ void ILI9341_Reset(volatile ILI9341* display);
 void ILI9341_Set_Rotation(volatile ILI9341* display, uint8_t Rotation);
 void ILI9341_Enable(volatile ILI9341* display);
 void ILI9341_Init(volatile ILI9341* display);
+void ILI9341_StartDMA(volatile ILI9341* display, uint8_t* buffer_p);
+void ILI9341_ResetDMATransfer();
 void ILI9341_Fill_Screen(volatile ILI9341* display, uint16_t Colour);
 void ILI9341_Draw_Colour(volatile ILI9341* display, uint16_t Colour);
 void ILI9341_Draw_Pixel(volatile ILI9341* display, uint16_t X, uint16_t Y, uint16_t Colour);

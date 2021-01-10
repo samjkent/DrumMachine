@@ -1,6 +1,9 @@
+#include <string.h>
 #include "ui.h"
 #include "ili9341.h"
 #include "gui.h"
+
+extern uint16_t buffer[240][320];
 
 unsigned char font_8x12[256][12]={
 {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // 0x00
@@ -535,6 +538,14 @@ void ui_draw_char(char c, int x, int y) {
     }
 }
 
+void ui_fill_screen(uint16_t color) {
+    for(uint8_t x = 0; x < 320; x++) {
+        for(uint8_t y = 0; y < 240; y++) {
+            ui_draw_pixel(x,y,color);
+        }
+    }
+}
+
 void ui_draw_pixel(int x, int y, uint16_t color) {
-    ILI9341_Draw_Pixel(&ili9341, x, y, color);
+    buffer[y][x] = color;
 }
