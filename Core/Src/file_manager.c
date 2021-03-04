@@ -38,7 +38,6 @@ FRESULT scan_files () {
 
     // Add end of directory
     max_index = i;
-
     return res;
 }
 
@@ -52,7 +51,6 @@ void attempt_fmount() {
 }
 
 void file_manager_draw() {
-    // gui_console_reset();
     char title[30];
     sprintf(&title, "File Manager (%u/%u)", current_index, max_index - 1);
     gui_print(title, MARKUP_HEADING);
@@ -114,7 +112,7 @@ void file_manager_directory_up() {
 
 void file_manager_load() {
     FIL fil;        /* File object */
-    BYTE buffer[512];   /* file copy buffer */
+    BYTE f_buffer[512];   /* file copy buffer */
     FRESULT fr;     /* FatFs return code */
     UINT br = 512;
     int block = 0;
@@ -133,9 +131,9 @@ void file_manager_load() {
     uint8_t mute = 1;
     memcpy(&sequencer[sequencer_channel].mute, &mute, 1);
   
-    while(br == sizeof buffer) { 
+    while(br == sizeof f_buffer) { 
         // Read from SD and put into RAM
-        f_read(&fil, buffer, sizeof buffer, &br);
+        f_read(&fil, f_buffer, sizeof f_buffer, &br);
 
         // Write page
         uint32_t address = (SDRAM_OFFSET * sequencer_channel) + (512 * block);
@@ -146,18 +144,18 @@ void file_manager_load() {
             if(ret != QSPI_OK) println("Erase failed: %u Page: %lu", ret, address);
         }
 
-        ret = BSP_QSPI_Write(&buffer, address, sizeof buffer);
+        ret = BSP_QSPI_Write(&f_buffer, address, sizeof f_buffer);
         if(ret != QSPI_OK) println("Write failed: %u Page: %u", ret, address);
 
         // Block 0 contains WAVE header
         if(!block) {
-            memcpy(&sequencer[sequencer_channel].header, &buffer, 44);
+            memcpy(&sequencer[sequencer_channel].header, &f_buffer, 44);
             char data[4];
             memcpy(&data, sequencer[sequencer_channel].header.SubChunk2ID, 4);
             if(data[0] != 0x64 && data[1] != 0x61 && data[2] != 0x74 && data[3] != 0x61) {
                 println("Missing data chunk.");
                 // Skip to next
-                memcpy(&sequencer[sequencer_channel].header.SubChunk2ID, &buffer[44 + sequencer[sequencer_channel].header.Subchunk2Size], 8);
+                memcpy(&sequencer[sequencer_channel].header.SubChunk2ID, &f_buffer[44 + sequencer[sequencer_channel].header.Subchunk2Size], 8);
             }
             memcpy(&sequencer[sequencer_channel].sample_progress, &sequencer[sequencer_channel].header.Subchunk2Size, 4);
         }

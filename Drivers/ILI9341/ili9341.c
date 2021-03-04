@@ -392,18 +392,24 @@ void ILI9341_Draw_Colour_Burst(volatile ILI9341* display, uint16_t Colour, uint3
 }
 
 uint8_t chunk = 0;
+#define DIVIDER  8
+#define CHUNK_SIZE ( 153600 / DIVIDER )
 void ILI9341_StartDMA(volatile ILI9341* display, uint8_t* buffer_p) {
-    if(chunk == 4) {
+    if(chunk == DIVIDER) {
         chunk = 0;
     }
 
-    if(chunk == 0)
-        ILI9341_Set_Address(display, 0, 0, display->screen_width, display->screen_height);
+    ILI9341_Set_Address(display, 0, chunk * (display->screen_height / DIVIDER), display->screen_width, (chunk + 1) * (display->screen_height / DIVIDER));
 
     // Data
     HAL_GPIO_WritePin(display->cs_gpio_base, display->cs_gpio_pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(display->dc_gpio_base, display->dc_gpio_pin, GPIO_PIN_SET);
-    HAL_SPI_Transmit_DMA(display->hspi, buffer_p + (chunk*38400), 38400);
+
+    // Clean
+    SCB_CleanDCache();
+        
+    // Send
+    HAL_SPI_Transmit_DMA(display->hspi, buffer_p + (chunk*CHUNK_SIZE), CHUNK_SIZE);
 
     chunk++;
 }

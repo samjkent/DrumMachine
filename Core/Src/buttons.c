@@ -6,6 +6,18 @@
 #include "file_manager.h"
 #include "gui.h"
 
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0') 
+
+
 MCP23017_HandleTypeDef hmcp;
 MCP23017_HandleTypeDef hmcp1;
 
@@ -69,7 +81,7 @@ void buttons_read(void *p) {
         };
 
   while (1) {
-    ulNotificationValue = ulTaskNotifyTake(pdTRUE, 50 / portTICK_PERIOD_MS);
+    ulNotificationValue = ulTaskNotifyTake(pdTRUE, 1 / portTICK_PERIOD_MS);
 
     // Read rows
     mcp23017_read_intf(&hmcp, MCP23017_PORTA);
@@ -131,6 +143,7 @@ void buttons_read(void *p) {
         case 0b0110:
             break;
         case 0b0111:
+            file_manager_index_inc();
             break;
         case 0b1000:
             break;
@@ -143,6 +156,7 @@ void buttons_read(void *p) {
         case 0b1100:
             break;
         case 0b1101:
+            file_manager_index_dec();
             break;
         case 0b1110:
             break;
