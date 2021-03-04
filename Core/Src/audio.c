@@ -15,7 +15,7 @@ void WM8894_Init() {
 
   audio_drv = &wm8994_drv;
   audio_drv->Reset(AUDIO_I2C_ADDRESS);
-  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 25,
+  if (0 != audio_drv->Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 50,
                            AUDIO_FREQUENCY_44K)) {
     Error_Handler();
   }
@@ -43,7 +43,7 @@ void audio_task(void *p) {
   memcpy(&sequencer[0].sample_progress, &sequencer[0].header.Subchunk2Size, 4);
 
   while (1) {
-    ulNotificationValue = ulTaskNotifyTake(pdTRUE, 2 / portTICK_PERIOD_MS);
+    ulNotificationValue = ulTaskNotifyTake(pdTRUE, 1 / portTICK_PERIOD_MS);
     // vTaskDelay(2 / portTICK_PERIOD_MS);
 
     // Generate samples

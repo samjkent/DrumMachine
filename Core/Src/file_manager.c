@@ -14,6 +14,8 @@ char current_path[30];
 uint8_t current_index;
 uint8_t max_index;
 
+#define BUFFER_SIZE 512
+
 FRESULT scan_files () {
     FRESULT res;
     DIR dir;
@@ -49,9 +51,10 @@ void attempt_fmount() {
     retSD = f_mount(&SDFatFs, SDPath, 1);
     
     // Read Sequencer from FS
-    fr = f_open(&fil, "0:/SEQUENCER", FA_READ);
-    f_read(&fil, sequencer, sizeof sequencer, &br);
-    f_close(&fil);
+    fr = f_open(&fil, "SEQUENCER", FA_READ);
+    fr = f_read(&fil, sequencer, sizeof sequencer, &br);
+    println("%u", fr);
+    fr = f_close(&fil);
 
 }
 
@@ -117,9 +120,9 @@ void file_manager_directory_up() {
 
 void file_manager_load() {
     FIL fil;        /* File object */
-    BYTE f_buffer[512];   /* file copy buffer */
+    BYTE f_buffer[BUFFER_SIZE];   /* file copy buffer */
     FRESULT fr;     /* FatFs return code */
-    UINT br = 512;
+    UINT br = BUFFER_SIZE;
     int block = 0;
     int ret;
 
@@ -142,7 +145,7 @@ void file_manager_load() {
         f_read(&fil, f_buffer, sizeof f_buffer, &br);
 
         // Write page
-        uint32_t address = (SDRAM_OFFSET * sequencer_channel) + (512 * block);
+        uint32_t address = (SDRAM_OFFSET * sequencer_channel) + (BUFFER_SIZE * block);
 
         // Clear page before writing
         if((address % 0x1000) == 0) {
@@ -178,9 +181,10 @@ void file_manager_load() {
     /* Close the file */
     f_close(&fil);
 
+    FIL fil_s;
     // Write sequencer to FS
-    fr = f_open(&fil, "0:/SEQUENCER", FA_WRITE);
-    f_write(&fil, sequencer, sizeof sequencer, &br);
-    f_close(&fil);
+    fr = f_open(&fil_s, "0:/SEQUENCER", FA_WRITE | FA_CREATE_ALWAYS);
+    f_write(&fil_s, sequencer, sizeof sequencer, &br);
+    f_close(&fil_s);
 
 }
