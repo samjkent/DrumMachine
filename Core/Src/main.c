@@ -69,9 +69,7 @@ void blinky(void *p) {
   attempt_fmount();
   scan_files();
   file_manager_draw();
-  while (1) {
-    vTaskDelay(200 / portTICK_PERIOD_MS);
-  }
+  vTaskDelete( NULL );
 }
 
 #define portTICK_PERIOD_US			( ( TickType_t ) 1000000 / configTICK_RATE_HZ )
@@ -197,7 +195,7 @@ int main(void) {
 
   /* Create threads */
   println("xTaskCreate");
-  xTaskCreate(blinky, (char *)"blinky", 256, NULL, 2, NULL);
+  xTaskCreate(blinky, (char *)"blinky", 512, NULL, 2, NULL);
   xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 12, NULL);
   xTaskCreate(gui_display_thread, (char *)"Screen Update Thread", 128, NULL, 6, NULL);
   xTaskCreate(semiquaver, (char *)"1/16th Note", 30, NULL, 5, NULL);
