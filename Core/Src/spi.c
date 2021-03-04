@@ -2,6 +2,7 @@
 #include "spi.h"
 
 #include "gpio.h"
+#include "gui.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -102,8 +103,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
   hdma_spi2.Init.MemInc = DMA_MINC_ENABLE;
   hdma_spi2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   hdma_spi2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  hdma_spi2.Init.Priority = DMA_PRIORITY_LOW;
   hdma_spi2.Init.Mode = DMA_NORMAL;
-  hdma_spi2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
   if (HAL_DMA_Init(&hdma_spi2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -144,7 +145,16 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
   }
 }
 
+
 /* USER CODE BEGIN 1 */
+extern TaskHandle_t xTaskToNotify_display_ready;
+
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
+    if(hspi->Instance == SPI2) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        vTaskNotifyGiveFromISR(xTaskToNotify_display_ready, &xHigherPriorityTaskWoken);
+    }
+}
 
 /* USER CODE END 1 */
 

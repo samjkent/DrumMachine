@@ -20,6 +20,8 @@ void gui_draw_waveform(int track, int channel, int yPos);
 
 void gui_console_reset();
 
+void gui_display_thread(void *p);
+
 void gui_print(char* string, uint8_t flags);
 
 void gui_draw_text(char* string, int x, int y, int f, int b);

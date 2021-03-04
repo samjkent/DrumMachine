@@ -189,21 +189,26 @@ int main(void) {
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
-  println("xTaskCreate");
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 8, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 256, NULL, 8, NULL);
-  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 256, NULL, 15, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 8, NULL);
-  xTaskCreate(blinky, (char *)"blinky", 1024, NULL, 8, NULL);
- 
+  /* Mount FS first */
   uint8_t ret;
   sprintf(SDPath, "0:");
   ret = FATFS_LinkDriver(&SD_Driver, SDPath);
   printf("FATFS_LinkDriver() returns %d \r\n", ret);
 
+  /* Create threads */
+  println("xTaskCreate");
+  xTaskCreate(blinky, (char *)"blinky", 256, NULL, 2, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 12, NULL);
+  xTaskCreate(gui_display_thread, (char *)"Screen Update Thread", 128, NULL, 6, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 30, NULL, 5, NULL);
+  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 512, NULL, 15, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 2, NULL);
+ 
   /* Start scheduler */
   println("osKernelStart()");
   osKernelStart();
+  
+  println("Kernel Exit");
 
   /* Infinite loop */
   while (1) {
@@ -309,8 +314,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
  * @retval None
  */
 void _Error_Handler(char *file, int line) {
-  while (1) {
-  }
+  println("Error handler %s : %u", file, line);
 }
 
 /**
@@ -322,3 +326,8 @@ int _write(int file, char* data, int len)
     return (status == HAL_OK ? len : 0);
 }
 
+
+void vApplicationStackOverflowHook( TaskHandle_t xTask,
+                                    signed char *pcTaskName ) {
+    println("Stack overflow: %s", pcTaskName);
+}

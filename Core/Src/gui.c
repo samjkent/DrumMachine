@@ -8,11 +8,16 @@
 #include <string.h>
 
 extern int sequencer_channel;
+
 QueueHandle_t xGUIMsgQueue;
+TaskHandle_t xTaskToNotify_display_ready = NULL;
+
+volatile uint16_t buffer[240][320];
 
 int y;
 
-void gui_init() {
+void gui_display_thread(void *p) {
+
   // Init Display Driver
   ILI9341_Struct_Reset(&ili9341);
 
@@ -34,21 +39,24 @@ void gui_init() {
   ILI9341_Init(&ili9341);
 
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
-
+  xTaskToNotify_display_ready = xTaskGetCurrentTaskHandle();
+ 
+  while (1) {
+    ILI9341_StartDMA(&ili9341, (uint8_t *)buffer);
+    ulTaskNotifyTake( pdFALSE, 5 / portTICK_PERIOD_MS);
+  }
 }
 
 void gui_task(void *p) {
   // Set up GUI
-  gui_init();
   int duration, start;
-                
-  ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+  int n = 0;  
 
   while (1) {
     duration = HAL_GetTick() - start;
     start = HAL_GetTick();
 
-    int nMessages = uxQueueMessagesWaiting(&xGUIMsgQueue);
+    int nMessages = uxQueueMessagesWaiting(xGUIMsgQueue);
     while(nMessages > 0) {
         struct GUIMsg pxRxedMessage;
         if( xQueueReceive( xGUIMsgQueue, &( pxRxedMessage ), ( TickType_t ) 10 ) )
@@ -66,12 +74,12 @@ void gui_task(void *p) {
             }
             if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
                 y = 0;
-                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+                ui_fill_screen(GUI_BACKGROUND_COLOUR);
                 continue;
             }
             if(pxRxedMessage.markup == MARKUP_ALERT) {
                 y = 0;
-                ILI9341_Fill_Screen(&ili9341, GUI_BACKGROUND_COLOUR);
+                ui_fill_screen(GUI_BACKGROUND_COLOUR);
             } 
 
             ui_draw_string(pxRxedMessage.msg, 0, 0, y);
@@ -79,63 +87,12 @@ void gui_task(void *p) {
 
             nMessages--;
         }
+      
     } 
 
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
-
-/*
-void gui_task(void *p) {
-  // Init screen
-  ILI9341_Struct_Reset(&ili9341);
-
-  ili9341.hspi = &hspi2;
-
-  ili9341.cs_gpio_base = GPIOJ;
-  ili9341.cs_gpio_pin = GPIO_PIN_3;
-  
-  ili9341.dc_gpio_base = GPIOJ;
-  ili9341.dc_gpio_pin = GPIO_PIN_4;
-  
-  ili9341.rst_gpio_base = GPIOH;
-  ili9341.rst_gpio_pin = GPIO_PIN_6;
-
-  ili9341.screen_height = 320;
-  ili9341.screen_width = 240;
-  
-  ILI9341_SPI_Init(&ili9341);
-  ILI9341_Init(&ili9341);
-
-  ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
-
-  int previous_sequencer_channel = -1;
-
-  ILI9341_Fill_Screen(&ili9341, BLACK);
-
-  while (1) {
-    // Check if update is required
-    if(previous_sequencer_channel != sequencer_channel) {
-        // Set previous_sequencer_channel
-        previous_sequencer_channel = sequencer_channel;
-
-        // Update sample information
-        char channel = sequencer_channel + '0';
-        ILI9341_Draw_Text(&ili9341, &channel, 5, 5, GUI_FOREGROUND_COLOUR, 5, GUI_BACKGROUND_COLOUR);
-        gui_draw_waveform(sequencer_channel, 0, 80);
-
-        ILI9341_Draw_Text(&ili9341, (char *)"Sample", 5, 140, GUI_FOREGROUND_COLOUR, 2, GUI_BACKGROUND_COLOUR);
-
-        ILI9341_Draw_Horizontal_Line(&ili9341, 80, 140, 230, GUI_FOREGROUND_COLOUR);
-
-    }
-
-    ILI9341_Fill_Screen(&ili9341, BLACK);
-
-    vTaskDelayUntil(40 / portTICK_PERIOD_MS);
-  }
-}
-*/
 
 void gui_draw_ticks(int fs, int div, int size, int windowSize, int x,
                     int yPos) {
