@@ -29,6 +29,8 @@ struct audio_channel {
 
     uint8_t mute;
 
+    char path[256];
+
 } audio_channel;
 
 struct audio_channel sequencer[10];

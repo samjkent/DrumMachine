@@ -4,6 +4,7 @@
 #define SAMPLE_REGION_START 0x80000000
 
 struct sample_meta {
+  char path[256]; 
   char sample_name[32];
   uint32_t sample_location;
   uint32_t sample_length;

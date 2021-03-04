@@ -42,11 +42,16 @@ FRESULT scan_files () {
 }
 
 void attempt_fmount() {
-    FRESULT retSD;
+    FRESULT retSD, fr;
     FIL fil;             /* File object */
     UINT br, bw;         /* File read/write count */
 
     retSD = f_mount(&SDFatFs, SDPath, 1);
+    
+    // Read Sequencer from FS
+    fr = f_open(&fil, "0:/SEQUENCER", FA_READ);
+    f_read(&fil, sequencer, sizeof sequencer, &br);
+    f_close(&fil);
 
 }
 
@@ -130,6 +135,7 @@ void file_manager_load() {
 
     uint8_t mute = 1;
     memcpy(&sequencer[sequencer_channel].mute, &mute, 1);
+    memcpy(&sequencer[sequencer_channel].path, &path, 256);
   
     while(br == sizeof f_buffer) { 
         // Read from SD and put into RAM
@@ -171,4 +177,10 @@ void file_manager_load() {
     file_manager_draw();
     /* Close the file */
     f_close(&fil);
+
+    // Write sequencer to FS
+    fr = f_open(&fil, "0:/SEQUENCER", FA_WRITE);
+    f_write(&fil, sequencer, sizeof sequencer, &br);
+    f_close(&fil);
+
 }
