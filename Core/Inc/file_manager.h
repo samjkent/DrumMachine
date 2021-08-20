@@ -1,6 +1,6 @@
 #include "ff_gen_drv.h"
 
-#define MAX_DIRECTORY_FILES 256
+#define MAX_DIRECTORY_FILES 128
 #define SDRAM_OFFSET 0xF0000
 
 

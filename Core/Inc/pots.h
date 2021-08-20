@@ -5,4 +5,5 @@
 #include "main.h"
 #include "cmsis_os.h"
 
+void pots_start_adc();
 void pots_update(void *p);

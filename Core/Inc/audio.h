@@ -8,7 +8,7 @@
 #include "wm8994.h"
 #include "file_manager.h"
 
-#define PLAY_BUFF_SIZE 2048
+#define PLAY_BUFF_SIZE 1024
 #define NUM_OF_CHANNELS 8
 
 AUDIO_DrvTypeDef *audio_drv;

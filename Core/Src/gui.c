@@ -10,17 +10,14 @@
 extern int sequencer_channel;
 
 QueueHandle_t xGUIMsgQueue;
-TaskHandle_t xTaskToNotify_display_ready = NULL;
 
 volatile uint16_t buffer[240][320];
 
-int y;
+int y, x;
 
-void gui_display_thread(void *p) {
+void gui_start_ili9341() {
 
   // Init Display Driver
-  ILI9341_Struct_Reset(&ili9341);
-
   ili9341.hspi = &hspi2;
 
   ili9341.cs_gpio_base = GPIOJ;
@@ -34,17 +31,17 @@ void gui_display_thread(void *p) {
 
   ili9341.screen_height = 240;
   ili9341.screen_width = 320;
+
+  ili9341.buffer = &buffer;
+  ili9341.buffer_len = sizeof(buffer);
   
   ILI9341_SPI_Init(&ili9341);
   ILI9341_Init(&ili9341);
 
   ILI9341_Set_Rotation(&ili9341, SCREEN_HORIZONTAL_2);
-  xTaskToNotify_display_ready = xTaskGetCurrentTaskHandle();
- 
-  while (1) {
-    ILI9341_StartDMA(&ili9341, (uint8_t *)buffer);
-    ulTaskNotifyTake( pdFALSE, 5 / portTICK_PERIOD_MS);
-  }
+    
+  ILI9341_StartDMA(&ili9341);
+
 }
 
 void gui_task(void *p) {
@@ -65,32 +62,46 @@ void gui_task(void *p) {
             int b = GUI_BACKGROUND_COLOUR;
 
             // Process markup
-            if(pxRxedMessage.markup == MARKUP_INVERT) {
-                f = GUI_BACKGROUND_COLOUR;
-                b = GUI_FOREGROUND_COLOUR;
-            }
-            if(pxRxedMessage.markup == MARKUP_HEADING) {
-                // UG_FontSelect( &FONT_12X16 ) ;
-            }
-            if(pxRxedMessage.markup == GUI_FLAG_CLEAR) {
-                y = 0;
-                ui_fill_screen(GUI_BACKGROUND_COLOUR);
-                continue;
-            }
-            if(pxRxedMessage.markup == MARKUP_ALERT) {
-                y = 0;
-                ui_fill_screen(GUI_BACKGROUND_COLOUR);
-            } 
+            switch(pxRxedMessage.markup) {
+                case MARKUP_INVERT: {
+                    f = GUI_BACKGROUND_COLOUR;
+                    b = GUI_FOREGROUND_COLOUR;
+                    break;
+                }
+                case MARKUP_HEADING: {
+                    // UG_FontSelect( &FONT_12X16 ) ;
+                    break;
+                }
+                case GUI_FLAG_CLEAR: {
+                    y = 0; x = 0;
+                    ui_fill_screen(GUI_BACKGROUND_COLOUR);
+                    break;
+                }
+                case MARKUP_ALERT: {
+                    y = 0;
+                    ui_fill_screen(GUI_BACKGROUND_COLOUR);
+                } 
+                case GUI_POT: {
+                    y = 15;
+                    ui_draw_pot(x, y, GUI_BAR_WIDTH, GUI_BAR_HEIGHT, pxRxedMessage.values[0], pxRxedMessage.values[1]);
+                    y = 30 + GUI_BAR_HEIGHT;
+                    ui_draw_string(pxRxedMessage.msg, 0, x, y);
 
-            ui_draw_string(pxRxedMessage.msg, 0, 0, y);
-            y += 16;
+                    x += (GUI_BAR_WIDTH + 5);
+                    break; 
+                }
+                default: {
+                    ui_draw_string(pxRxedMessage.msg, 0, 0, y);
+                    y += 16;
+                }
+            }
 
             nMessages--;
         }
-      
+
     } 
 
-    vTaskDelay(200 / portTICK_PERIOD_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
 }
 
@@ -180,11 +191,28 @@ void gui_console_reset() {
     xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
 }
 
+void gui_reset() {
+    struct GUIMsg msg;
+    msg.id = (HAL_GetTick() & 0xFF);
+    msg.markup = GUI_FLAG_CLEAR;
+    xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
+}
+
 void gui_print(char* str, uint8_t flags) {
     struct GUIMsg msg;
     msg.id = (HAL_GetTick() & 0xFF);
     msg.markup = flags;
     strcpy(msg.msg, str);
+    xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
+}
+
+void gui_pot(char* label, uint8_t value, uint8_t max) {
+    struct GUIMsg msg;
+    msg.id = (HAL_GetTick() & 0xFF);
+    msg.markup = GUI_POT;
+    strcpy(msg.msg, label);
+    msg.values[0] = value;
+    msg.values[1] = max;
     xQueueSend( xGUIMsgQueue, ( void * ) &msg, ( TickType_t ) 10 );
 }
 

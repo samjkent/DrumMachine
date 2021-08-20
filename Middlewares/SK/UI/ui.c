@@ -21,6 +21,23 @@ void ui_draw_char(char c, int x, int y) {
     }
 }
 
+void ui_draw_pot(int x, int y, int width, int height, int value, int max) {
+    float percent = (float)value / (float)max;
+    int bar_height = (float)(height - 8) * percent;
+
+    for(int _y = y + height; _y > y; _y--) {
+        for(int _x = x; _x < x + width; _x++) {
+            // Draw outer
+            if(_y == y + 1 || _y == y + height || _x == x || _x == x + (width-1))
+                ui_draw_pixel(_x, _y, 0xFFFF);
+
+            // Draw bar
+            if(_y > y + (height - bar_height) && _y < y + (height - 5) && _x > x + 5 && _x < x + (width - 5))
+                ui_draw_pixel(_x, _y, 0xFFFF);
+        }
+    }
+}
+
 void ui_fill_screen(uint16_t color) {
     for(int x = 0; x < 320; x++) {
         for(int y = 0; y < 240; y++) {
@@ -48,7 +65,9 @@ void ui_demo() {
 }
 
 void ui_draw_pixel(int x, int y, uint16_t color) {
-    buffer[y][x] = color;
+    if(x < 320 && y < 240 && x >= 0 && y >= 0) { 
+        buffer[y][x] = color;
+    }
 }
 
 void ui_draw_box(int x, int y, int x1, int y1, uint16_t color) {

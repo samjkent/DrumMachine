@@ -25,12 +25,13 @@
 #include "wwdg.h"
 #include "gui.h"
 #include <math.h>
+#include "common.h"
+#include "pots.h"
 
 #include "stm32f769i_discovery_sd.h"
 #include "stm32f769i_discovery_qspi.h"
 
 /* Private variables ---------------------------------------------------------*/
-#define ADC_BUFF_SIZE 30 
 #define NUM_OF_CHANNELS 8
 
 FATFS SDFatFs;
@@ -38,14 +39,9 @@ FIL file;
 extern Diskio_drvTypeDef SD_Driver;
 char SDPath[4];
 
-enum modes { SEQUENCER, SELECTOR, LIVE };
-
 uint8_t mode = SEQUENCER;
 
 extern uint8_t sequencer_channel;
-
-uint16_t ADCBuffer_1[ADC_BUFF_SIZE];
-uint16_t ADCBuffer_3[ADC_BUFF_SIZE];
 
 int current_step = 0;
 
@@ -77,7 +73,7 @@ void semiquaver(void *p) {
   TickType_t xLastWakeTime;
   portTASK_USES_FLOATING_POINT();
   
-  int bpm = ((60.0/87.0)/4.0)*1000000;
+  int bpm = ((60.0/130.0)/4.0)*1000000;
 
   // Initialise the xLastWakeTime variable with the current time.
   xLastWakeTime = xTaskGetTickCount();
@@ -92,21 +88,27 @@ void semiquaver(void *p) {
 
     current_step = (current_step + 1) % 16;
 
+    for (int i = 0; i < 25; i++) {
+      // Clear LEDs
+      ws2812b_set_pixel(i, 0x000000, 0xFFFFFF);
+    }
+
     if (mode == SEQUENCER) {
-      // Clear blue
-      for (int i = 0; i < 16; i++)
-        ws2812b_set_pixel(i, 0x000000, 0x0000FF);
+      // Control LED
+      ws2812b_set_pixel(19, 0x021400, 0xFFFFFF);
 
       // Set step
       ws2812b_set_pixel(current_step, 0x00000F, 0x0000FF);
     } else if (mode == SELECTOR) {
-      // Set LEDs
-      for (int i = 0; i < 16; i++) {
-        // Clear LEDs
-        ws2812b_set_pixel(i, 0x000000, 0xFFFFFF);
+      // Control LED
+      ws2812b_set_pixel(23, 0x021400, 0xFFFFFF);
+
+      for (int i = 0; i < NUM_OF_CHANNELS; i++) {
+        ws2812b_set_pixel(i, 0x021f00, 0xFFFFFF);
       }
+
       // Set selected sample on
-      ws2812b_set_pixel(sequencer_channel, 0x0F0F00, 0xFFFF00);
+      ws2812b_set_pixel(sequencer_channel, 0x00001F, 0xFFFFFF);
     }
   }
 }
@@ -176,14 +178,8 @@ int main(void) {
 
   MX_ADC1_Init();
   MX_ADC3_Init();
-  if(HAL_ADC_Start_DMA(&hadc1, (uint32_t *)(&ADCBuffer_1), ADC_BUFF_SIZE) != HAL_OK) {
-          Error_Handler();
-  }
+  pots_start_adc();
 
-  if(HAL_ADC_Start_DMA(&hadc3, (uint32_t *)(&ADCBuffer_3), ADC_BUFF_SIZE) != HAL_OK) {
-          Error_Handler();
-  }
-  
   /* Call init function for freertos objects (in freertos.c) */
   MX_FREERTOS_Init();
 
@@ -193,14 +189,17 @@ int main(void) {
   ret = FATFS_LinkDriver(&SD_Driver, SDPath);
   printf("FATFS_LinkDriver() returns %d \r\n", ret);
 
+  // Start streaming buffer to screen
+  gui_start_ili9341();
+
   /* Create threads */
   println("xTaskCreate");
   xTaskCreate(blinky, (char *)"blinky", 512, NULL, 2, NULL);
-  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 12, NULL);
-  xTaskCreate(gui_display_thread, (char *)"Screen Update Thread", 128, NULL, 6, NULL);
-  xTaskCreate(semiquaver, (char *)"1/16th Note", 30, NULL, 5, NULL);
-  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 512, NULL, 15, NULL);
-  xTaskCreate(buttons_read, (char *)"Check Inputs", 256, NULL, 2, NULL);
+  xTaskCreate(gui_task, (char *)"GUI Task", 256, NULL, 5, NULL);
+  xTaskCreate(semiquaver, (char *)"1/16th Note", 100, NULL, 5, NULL);
+  xTaskCreate(audio_task, (char *)"Audio Buffer Manager", 512, NULL, 10, NULL);
+  xTaskCreate(buttons_read, (char *)"Check Inputs", 1024, NULL, 5, NULL);
+  xTaskCreate(pots_update, (char *)"Sample pots", 256, NULL, 5, NULL);
  
   /* Start scheduler */
   println("osKernelStart()");

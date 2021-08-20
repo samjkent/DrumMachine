@@ -9,6 +9,10 @@
 #define MARKUP_HEADING 0x2
 #define MARKUP_ALERT 0x3
 #define GUI_FLAG_CLEAR 0x4
+#define GUI_POT 0x5
+
+#define GUI_BAR_WIDTH 40
+#define GUI_BAR_HEIGHT 100
 
 void gui_init();
 
@@ -20,7 +24,9 @@ void gui_draw_waveform(int track, int channel, int yPos);
 
 void gui_console_reset();
 
-void gui_display_thread(void *p);
+void gui_reset();
+
+void gui_start_ili9341();
 
 void gui_print(char* string, uint8_t flags);
 
@@ -33,4 +39,5 @@ struct GUIMsg
     uint8_t id;
     char markup;
     char msg[256];
+    uint8_t values[10];
 };

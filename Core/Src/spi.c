@@ -3,9 +3,10 @@
 
 #include "gpio.h"
 #include "gui.h"
+#include "ili9341.h"
 
 /* USER CODE BEGIN 0 */
-
+extern uint16_t buffer;
 /* USER CODE END 0 */
 
 SPI_HandleTypeDef hspi2;
@@ -105,6 +106,8 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
   hdma_spi2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
   hdma_spi2.Init.Priority = DMA_PRIORITY_LOW;
   hdma_spi2.Init.Mode = DMA_NORMAL;
+  hdma_spi2.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
+  hdma_spi2.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
   if (HAL_DMA_Init(&hdma_spi2) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -147,15 +150,17 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle)
 
 
 /* USER CODE BEGIN 1 */
-extern TaskHandle_t xTaskToNotify_display_ready;
-
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi) {
     if(hspi->Instance == SPI2) {
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR(xTaskToNotify_display_ready, &xHigherPriorityTaskWoken);
+        ILI9341_StartDMA(&ili9341);
     }
 }
 
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef* hspi) {
+    if(hspi->Instance == SPI2) {
+        println("SPI2 Error: 0x%x, DMA: 0x%x", hspi2.ErrorCode, hdma_spi2.ErrorCode);
+    }
+}
 /* USER CODE END 1 */
 
 /**

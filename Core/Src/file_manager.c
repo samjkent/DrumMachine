@@ -15,6 +15,7 @@ uint8_t current_index;
 uint8_t max_index;
 
 #define BUFFER_SIZE 512
+#define PAGE_SIZE 14
 
 FRESULT scan_files () {
     FRESULT res;
@@ -29,11 +30,10 @@ FRESULT scan_files () {
 
     res = f_opendir(&dir, current_path);                           /* Open the directory */
     if (res == FR_OK) {
-        for (;;) {
+        for (i = 0; i < MAX_DIRECTORY_FILES; i++) {
             res = f_readdir(&dir, &fno);                   /* Read a directory item */
             if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
             memcpy(&directory[i], &fno, sizeof(fno));
-            i++;
         }
         f_closedir(&dir);
     }
@@ -62,16 +62,27 @@ void file_manager_draw() {
     char title[30];
     sprintf(&title, "File Manager (%u/%u)", current_index, max_index - 1);
     gui_print(title, MARKUP_HEADING);
-    for(uint8_t i = current_index; (i < current_index + 15) && (i < (max_index)); i++) {
+
+    int page_start= (current_index / PAGE_SIZE) * PAGE_SIZE; // C rounds down e.g. 17 / 15 = 1
+
+    for(uint8_t i = page_start; (i < page_start + PAGE_SIZE) && (i < (max_index)); i++) {
         if(directory[i].fname == 0) break;
+
         char fname[256];
-        sprintf(&fname, "%s", directory[i].fname);
+        char arrow;
+        if(current_index == i) {
+          arrow = '>';
+        } else {
+          arrow = ' ';
+        }
+
+        sprintf(&fname, "%c%s", arrow, directory[i].fname);
         if(directory[i].fattrib == AM_DIR) {
             sprintf(&fname, "%s/", fname);
         } else {
             sprintf(&fname, "%s", fname);
         }
-        gui_print(fname, (i == current_index ? MARKUP_INVERT : MARKUP_NONE));
+        gui_print(&fname, (i == current_index ? MARKUP_INVERT : MARKUP_NONE));
     }
 }
 
@@ -126,8 +137,19 @@ void file_manager_load() {
     int block = 0;
     int ret;
 
-    char path[256];
+    // Check for WAV
+    int len = strlen(current_path) + strlen(directory[current_index].fname);
+    char path[len];
     sprintf(&path, "%s/%s", current_path, directory[current_index].fname);
+
+    if(path[len - 2] != 'w' ||
+       path[len - 1] != 'a' ||
+       path[len - 0] != 'v') {
+        gui_print("Not a wav", MARKUP_ALERT);
+        println("%c%c%c", path[len - 4], path[len - 3], path[len - 2]);
+        return;
+    }
+
     println("%s", path);
     fr = f_open(&fil, path, FA_READ);
     if (fr) {

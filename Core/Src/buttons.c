@@ -3,8 +3,11 @@
 #include "i2c.h"
 #include "MCP23017.h"
 #include "ws2812b.h"
-#include "file_manager.h"
 #include "gui.h"
+#include "common.h"
+
+#include "file_manager.h"
+#include "channel_overview.h"
 
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)  \
@@ -17,6 +20,36 @@
   (byte & 0x02 ? '1' : '0'), \
   (byte & 0x01 ? '1' : '0') 
 
+#define CHECK_BUTTON(var,pos) !((var) & (1<<(pos)))  // Active Low
+
+// defines for button states
+#define BUTTON_1 12
+#define BUTTON_2 8
+#define BUTTON_3 4
+#define BUTTON_4 0
+#define BUTTON_5 13
+#define BUTTON_6 9
+#define BUTTON_7 5
+#define BUTTON_8 1
+
+#define BUTTON_9 14
+#define BUTTON_10 10
+#define BUTTON_11 6
+#define BUTTON_12 2
+#define BUTTON_13 15
+#define BUTTON_14 11
+#define BUTTON_15 7
+#define BUTTON_16 3
+
+#define BUTTON_17 19
+#define BUTTON_18 18
+#define BUTTON_19 17
+#define BUTTON_20 16
+
+#define BUTTON_21 23
+#define BUTTON_22 22
+#define BUTTON_23 21
+#define BUTTON_24 20
 
 MCP23017_HandleTypeDef hmcp;
 MCP23017_HandleTypeDef hmcp1;
@@ -27,6 +60,8 @@ uint8_t enc1_prev;
 static TaskHandle_t xTaskToNotify_buttons_read = NULL;
 
 extern uint8_t sequencer_channel;
+
+extern uint8_t mode;
 
 void buttons_init() {
     // Bring up MCP
@@ -118,6 +153,7 @@ void buttons_read(void *p) {
     } else {
         enc1 = 0;
     }
+
     // Back button pressed
     if(!((currentState >> (24)) & 0x01)) {
         file_manager_directory_up();
@@ -164,38 +200,86 @@ void buttons_read(void *p) {
             break;
     }
 
-    // Check for channel switch key
-    if((currentState >> 20) & 0x01) {
-        // Process Note Keys
+    /* Push buttons */
+    uint8_t redraw = 0;
+    // Note mode
+    if(CHECK_BUTTON(currentState, BUTTON_20)) {
+        mode = SEQUENCER;
+    }
 
-        for(uint8_t n = 0; n < 16; n++) {
-            // Note On / Off 
-            if(!((currentStateIRQ >> n) & 0x01)) {
-                buttons_toggle(noteKeyTranslate[n]);
-            }
-        }
-    } else {
-        uint8_t curChannel = sequencer_channel;
+    // Channel select
+    if(CHECK_BUTTON(currentStateIRQ, BUTTON_24)) {
+        mode = SELECTOR;
+        channel_overview_draw();
+    }
 
+    // SELECTOR Buttons
+    if(mode == SELECTOR) {
         // Select new channel
-        for(uint8_t n = 0; n < 8; n++) {
-            if(!((currentStateIRQ >> n) & 0x01)) {
-                sequencer_channel = n;
-            }
-        }
-       
-        // Check if changed 
-        if(curChannel != sequencer_channel) {
-            // Set LEDs
-            for(uint8_t n = 0; n < 16; n++) {
-                if((sequencer[sequencer_channel].note_on >> n) & 0x01) {
-                    ws2812b_set_pixel(n, 0x000F00, 0x00FF00);
-                } else {
-                    ws2812b_set_pixel(n, 0x000000, 0x00FF00);
-                }
-            }
-        }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_1))
+            { sequencer_channel = 0; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_2))
+            { sequencer_channel = 1; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_3))
+            { sequencer_channel = 2; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_4))
+            { sequencer_channel = 3; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_5))
+            { sequencer_channel = 4; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_6))
+            { sequencer_channel = 5; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_7))
+            { sequencer_channel = 6; redraw = 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_8))
+            { sequencer_channel = 7; redraw = 1; }
+
+        if(redraw) channel_overview_draw();
+    }
     
+    // Sequencer Buttons
+    if(mode == SEQUENCER) {
+        // Select new channel
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_1))
+            { sequencer[sequencer_channel].note_on ^= 1 << 0; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_2))
+            { sequencer[sequencer_channel].note_on ^= 1 << 1; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_3))
+            { sequencer[sequencer_channel].note_on ^= 1 << 2; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_4))
+            { sequencer[sequencer_channel].note_on ^= 1 << 3; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_5))
+            { sequencer[sequencer_channel].note_on ^= 1 << 4; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_6))
+            { sequencer[sequencer_channel].note_on ^= 1 << 5; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_7))
+            { sequencer[sequencer_channel].note_on ^= 1 << 6; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_8))
+            { sequencer[sequencer_channel].note_on ^= 1 << 7; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_9))
+            { sequencer[sequencer_channel].note_on ^= 1 << 8; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_10))
+            { sequencer[sequencer_channel].note_on ^= 1 << 9; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_11))
+            { sequencer[sequencer_channel].note_on ^= 1 << 10; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_12))
+            { sequencer[sequencer_channel].note_on ^= 1 << 11; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_13))
+            { sequencer[sequencer_channel].note_on ^= 1 << 12; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_14))
+            { sequencer[sequencer_channel].note_on ^= 1 << 13; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_15))
+            { sequencer[sequencer_channel].note_on ^= 1 << 14; }
+        if(CHECK_BUTTON(currentStateIRQ, BUTTON_16))
+            { sequencer[sequencer_channel].note_on ^= 1 << 15; }
+
+        // Set LEDs
+        for(uint8_t n = 0; n < 16; n++) {
+            if((sequencer[sequencer_channel].note_on >> n) & 0x01) {
+                ws2812b_set_pixel(n, 0x000F00, 0x00FF00);
+            } else {
+                ws2812b_set_pixel(n, 0x000000, 0x00FF00);
+            }
+        }
     }
 
     // Process Control Keys

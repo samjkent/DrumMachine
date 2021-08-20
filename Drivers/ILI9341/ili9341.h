@@ -125,6 +125,9 @@ typedef struct
 
     uint16_t      screen_height;
     uint16_t      screen_width;
+
+    uint8_t*      buffer;
+    uint32_t      buffer_len;
 } ILI9341;
 
 //! @brief Initializes ILI9341 to zeroized values.
@@ -148,7 +151,7 @@ void ILI9341_Reset(volatile ILI9341* display);
 void ILI9341_Set_Rotation(volatile ILI9341* display, uint8_t Rotation);
 void ILI9341_Enable(volatile ILI9341* display);
 void ILI9341_Init(volatile ILI9341* display);
-void ILI9341_StartDMA(volatile ILI9341* display, uint8_t* buffer_p);
+void ILI9341_StartDMA(volatile ILI9341* display);
 void ILI9341_ResetDMATransfer();
 void ILI9341_Fill_Screen(volatile ILI9341* display, uint16_t Colour);
 void ILI9341_Draw_Colour(volatile ILI9341* display, uint16_t Colour);
