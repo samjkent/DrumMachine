@@ -18,6 +18,8 @@ OPT = -Og
 #######################################
 # Build path
 BUILD_DIR = build
+LVGL_DIR=Middlewares/Third_Party
+LVGL_DIR_NAME=lvgl
 
 ######################################
 # source
@@ -109,7 +111,10 @@ Middlewares/Third_Party/FatFs/src/ff_gen_drv.c \
 Middlewares/Third_Party/FatFs/src/ff.c \
 Middlewares/Third_Party/FatFs/src/diskio.c \
 Middlewares/Third_Party/FatFs/src/option/syscall.c \
-Middlewares/Third_Party/FatFs/src/option/ccsbcs.c
+Middlewares/Third_Party/FatFs/src/option/ccsbcs.c \
+
+-include Middlewares/Third_Party/lvgl/lvgl.mk
+C_SOURCES += $(CSRCS)
 
 # ASM sources
 ASM_SOURCES =  \
@@ -185,7 +190,9 @@ C_INCLUDES =  \
 -IDrivers/BSP/Components/wm8994 \
 -IDrivers/BSP/Components/Common \
 -IDrivers/BSP/STM32F769I_EVAL \
--IDrivers/BSP/STM32F769I-Discovery
+-IDrivers/BSP/STM32F769I-Discovery \
+-IMiddlewares/Third_Party/ \
+-IMiddlewares/Third_Party/lvgl
 
 
 # compile gcc flags
@@ -256,5 +263,6 @@ clean:
 # dependencies
 #######################################
 -include $(wildcard $(BUILD_DIR)/*.d)
+
 
 # *** EOF ***
